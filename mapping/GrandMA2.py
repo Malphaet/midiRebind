@@ -1,20 +1,18 @@
-class BasicMessageParse(object):
-    """Classic System Specific Midi Message as Hex (BasicSyHexParse).
-    Uses one method, parseMidi to parse the message and return a BasicMapping object with the mapping of the message inside"""
+from mapping import BasicMessageParse,BasicAction
+import mido
 
+#A MessageParse object MUST be included in the file, the rest is implementation Specific
+class MessageParse(BasicMessageParse):
+    """Parsing of a gma SyEx message"""
+
+    def __init__(self, arg):
+        #super(Parse, self).__init__() #The init here is irrelevant
+        self._mapping = arg
+
+class Action(BasicAction):
+    """The list of action to perform when a message is read"""
     def __init__(self):
-        '''Basic init'''
-        self.mapping={"value":None,"type":None} # A barebone initialisation, unusable, it will need to be overridden to work
-        self.value=None
-        self.
-
-    def parseMidi(self,message):
-        """Take a midi SyxEx message and return a BasicMapping"""
         pass
 
-class BasicMapping(object):
-    """A basic reading of the message, propreties are initialised depending on the way the SyEx message is formed,
-    this objet will need the configuration to read and understand the message
-    """
-    def __init__(self):
+    def resolve(self,config):
         pass
