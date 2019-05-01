@@ -1,3 +1,5 @@
+import mido
+
 # Load the config and return an action class
 class Binding(object):
     """Binding class, simple binding between note and actions"""
@@ -23,11 +25,12 @@ class ActionList(object):
     """List of action to play after a message is receaved"""
 
     def __init__(self,list):
-        """Takes the list of actions detected and
+        """Takes the list of actions detected and """
         pass
 
 class Action(object):
     """Action itself, a mapper for the midi library"""
 
     def __init__(self,actiontype):
+        """Take one action and bind the correct midi message"""
         self.actiontype=actiontype
