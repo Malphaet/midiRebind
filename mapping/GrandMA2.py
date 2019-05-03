@@ -1,6 +1,6 @@
 from mapping import BasicMessageParse,BasicAction
 import mido
-import re
+import re,configparser
 
 commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",11:"go_off"}
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
@@ -26,14 +26,43 @@ class MessageParse(BasicMessageParse):
         else:
             raise MatchError
 
+#An Action object MUST be included in the file.
+#Called first with a config file, will be callable to launch an action with the matched regex as an argument
 class Action(BasicAction):
     """The list of action to perform when a message is read"""
     def __init__(self,config):
         """Parse the config and ready all return actions"""
-        self.config=config
-        # Load config
+        # Load config, in a near future, the config will be preloaded beforehand, but for right now, practicallity will prevail
+        self.config=configparser.ConfigParser()
+        self.config.read(config)
+        self.sections={}
         # Parse config & check sanity
+        if "interface" not in self.config:
+            raise IOError #You must define an interface to connect to
+
         # Create all the call setups
+        for elt in self.config.sections():
+            if elt !="interface":
+                if "/" in elt:
+                    selt=elt.split("/")
+                    if selt[0] not in self.sections:
+                        self.sections[selt[0]]={}
+                    self.sections[selt[0]].update({selt[1]:self.config[elt]})
+                else:
+                    if elt in self.sections:
+                        if "*" not in self.sections[elt]:
+                            self.sections[elt]["*"]=self.config[elt]
+                            # This means you will override any "/x" config
+                    else:
+                        self.sections[elt]={"*":self.config[elt]}
+
+        
+    def format(self,command,number,page):
+        "Format a match to call the correct action"
+        try:
+            return self.sections[command][page]
+        except:
+            return self.sections[command]["*"]
 
     def __call__(self,match):
         """Launch the action depending on the config, the config format is supposed to be as canon as possible

@@ -73,6 +73,30 @@ class mappingTest(minitest.simpleTestUnit):
         else:
             self.addFailure("Incorrect fields: "+inc[:-1])
 
+        self.currentTest("Testing Config")
+        try:
+            self.act=GrandMA2.Action("patch/default.ini")
+            self.addSuccess()
+        except IOError:
+            self.addFailure("Can't load config file")
+
+        self.currentTest("Testing the formatter")
+        try:
+            setsect=self.act.format("set","1","1")
+            try:
+                self.act.format("set","2","3")
+                self.addFailure("Not supposed to load page 3")
+            except:
+                try:
+                    self.act.format("fire","2","11")
+                    self.addSuccess()
+                except:
+                    self.addFailure("Can't acess the fire section")
+        except:
+            self.addFailure("Can't get (set 1 on page 1)")
+
+
+
     def testParse(self,message):
         try:
             parsed=self.parser(message)
