@@ -56,7 +56,27 @@ class Action(BasicAction):
                     else:
                         self.sections[elt]={"*":self.config[elt]}
 
-        
+
+        # Populate all the function calls with the data of the config sections
+        for elt in self.sections: #Going in every section
+            for group in self.sections[elt]: # Going in every sub-group
+                conf,self.sections[elt][group]=self.sections[elt][group],{} #Replacing the links to the config with the real dict of links
+                for key in conf: # Reading every mapping and liking it to the appropriate Trigger
+                    if "/" in key: # There is a condition to an action
+                        note,ctype=key.split("/")
+                        if "-" in note:
+                            nmin,nmax=note.split("-")
+                            for i in range(nmin,nmax):
+                                conf.sections[elt][group][i].condition(ctype,conf[key])
+                        else:
+                            conf.sections[elt][group][note].condition(ctype,conf[key])
+                    elif "-" in key: # There is a range of values to map
+                        nmin,nmax=key.split("-")
+                        for i in range(nmin,nmax):
+                            conf.sections[elt][group][i]=MidiTrigger() #Do a different trigger for every ; and link to a different interface for every n/
+                    else: # Nothing fancy
+                        self.sections[elt][group][key]=MidiTrigger()
+
     def format(self,command,number,page):
         "Format a match to call the correct action"
         try:
@@ -68,6 +88,20 @@ class Action(BasicAction):
         """Launch the action depending on the config, the config format is supposed to be as canon as possible
         but since the actual implementation is custom made... go wild ?"""
         # Try a predefined action
+        pass
+
+class MidiTrigger(object):
+    """A midi trigger, will do a specific action when called"""
+    def __init__(self,interface,message):
+        self.output=interface
+        self.message=message
+        self.cond=False
+    def __call__(self,val):
+        """Execute the call if the condition is true"""
+        pass
+
+    def condition(self,ctype,funct):
+        """Affect a specific action (usually a condition) to the execution of the event"""
         pass
 
 class MatchError(Exception):
