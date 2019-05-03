@@ -72,6 +72,7 @@ class mappingTest(minitest.simpleTestUnit):
             self.addSuccess()
         else:
             self.addFailure("Incorrect fields: "+inc[:-1])
+
     def testParse(self,message):
         try:
             parsed=self.parser(message)
