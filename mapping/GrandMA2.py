@@ -36,47 +36,102 @@ class Action(BasicAction):
         self.config=configparser.ConfigParser()
         self.config.read(config)
         self.sections={}
+        self.outputs={} #Have every output in a dict
+        self.dec10=[str(x) for x in range(10)]
         # Parse config & check sanity
         if "interface" not in self.config:
             raise IOError #You must define an interface to connect to
+        self.populateSections()
+        print self.sections
 
-        # Create all the call setups
+    def populateSections(self):
+        "Create all the call setups"
         for elt in self.config.sections():
             if elt !="interface":
                 if "/" in elt:
                     selt=elt.split("/")
                     if selt[0] not in self.sections:
                         self.sections[selt[0]]={}
-                    self.sections[selt[0]].update({selt[1]:self.config[elt]})
+                    self.sections[selt[0]].update({selt[1]:self.makeTriggers(self.config[elt])})
                 else:
                     if elt in self.sections:
                         if "*" not in self.sections[elt]:
-                            self.sections[elt]["*"]=self.config[elt]
+                            self.sections[elt]["*"]=self.makeTriggers(self.config[elt])
                             # This means you will override any "/x" config
                     else:
-                        self.sections[elt]={"*":self.config[elt]}
+                        self.sections[elt]={"*":self.makeTriggers(self.config[elt])}
+
+    def makeTriggers(self,conf):
+        "Take a section of a config and put all triggers in a dict"
+        keys={}
+        for key in conf: # Reading every mapping and liking it to the appropriate Trigger
+            if "/" in key: # There is a condition to an action
+                note,ctype=key.split("/")
+                if "-" in note:
+                    nmin,nmax=note.split("-")
+                    nmin,nmax=int(nmin),int(nmax)
+                    for i in range(nmin,nmax):
+                        pass#keys[i].condition(ctype,conf[key])
+                else:
+                    pass#keys[note].condition(ctype,conf[key])
+            elif "-" in key: # There is a range of values to map
+                nmin,nmax=key.split("-")
+                nmin,nmax=int(nmin),int(nmax)
+                for i in range(nmin,nmax):
+                    keys[i]=self.makeAllKeys(i,conf[key],startkey=nmin,stopkey=nmax) #Do a different trigger for every ; and link to a different interface for every n/
+            else: # Nothing fancy
+                keys[int(key)]=self.makeAllKeys(int(key),conf[key])
+        return keys
+
+    def makeAllKeys(self,key,action,startkey=0,stopkey=0):
+        """Make all the actions associated with the key
+        startkey and stopkey indicate if an interpolation over the values is to be made"""
+        #print key,action,startkey,stopkey
+        #Check if there are multiple actions to do
+        if ';' in action:
+            allactions=[]
+            for a in action.split(";"):
+                #print a
+                allactions+=self.makeAllKeys(key,a,startkey,stopkey)
+            return allactions
+        try:
+            pack=action.split("/")
+            if len(pack)==4:
+                interfaceout,midiaction,note,intensity=pack
+            elif len(pack)==2:
+                midiaction,note=pack
+                interfaceout,intensity=1,127
+            elif len(pack)==3:
+                if pack[0][0] not in self.dec10:
+                    midiaction,note,intensity=pack
+                    interfaceout=1
+                else:
+                    interfaceout,midiaction,note=pack
+                    intensity=127
+            else:
+                raise ValueError
+            #print "io:{} act:{} note:{} int:{}".format(interfaceout,midiaction,note,intensity)
+            intensity,interfaceout=int(intensity),int(interfaceout)
+        except:
+            print("Config key {} is incorrect, values {} can't be unpacked".format(key,action))
 
 
-        # Populate all the function calls with the data of the config sections
-        for elt in self.sections: #Going in every section
-            for group in self.sections[elt]: # Going in every sub-group
-                conf,self.sections[elt][group]=self.sections[elt][group],{} #Replacing the links to the config with the real dict of links
-                for key in conf: # Reading every mapping and liking it to the appropriate Trigger
-                    if "/" in key: # There is a condition to an action
-                        note,ctype=key.split("/")
-                        if "-" in note:
-                            nmin,nmax=note.split("-")
-                            for i in range(nmin,nmax):
-                                conf.sections[elt][group][i].condition(ctype,conf[key])
-                        else:
-                            conf.sections[elt][group][note].condition(ctype,conf[key])
-                    elif "-" in key: # There is a range of values to map
-                        nmin,nmax=key.split("-")
-                        for i in range(nmin,nmax):
-                            conf.sections[elt][group][i]=MidiTrigger() #Do a different trigger for every ; and link to a different interface for every n/
-                    else: # Nothing fancy
-                        self.sections[elt][group][key]=MidiTrigger()
+        return [MidiTrigger(interfaceout,midiaction,note,self.findIntensity(key,startkey,stopkey,note))]
 
+    def findIntensity(self,key,startkey,stopkey,note):
+        if startkey!=stopkey: #do an interpolation over the values
+            if "-" in note: #there is a range to interpolate over to
+                nmin,nmax=note.split("-")
+                nmin,nmax=int(nmin),int(nmax)
+            else:
+                nmin=int(note)
+                nmax=nmin+stopkey-startkey #Just do the interpolation linearly
+            if nmax-nmin!=stopkey-startkey:
+                pad=(nmax-nmin)/(stopkey-startkey)
+            else:
+                pad=1
+            return nmin+(key-startkey)*pad
+        return int(note)
     def format(self,command,number,page):
         "Format a match to call the correct action"
         try:
@@ -90,12 +145,17 @@ class Action(BasicAction):
         # Try a predefined action
         pass
 
+FTrue=lambda x: True
+
 class MidiTrigger(object):
     """A midi trigger, will do a specific action when called"""
-    def __init__(self,interface,message):
+    def __init__(self,interface,messagetype,value,intensity):
         self.output=interface
-        self.message=message
-        self.cond=False
+        self.messagetype=messagetype
+        self.value=value
+        self.intensity=intensity
+        self.condition=FTrue
+
     def __call__(self,val):
         """Execute the call if the condition is true"""
         pass
@@ -103,6 +163,9 @@ class MidiTrigger(object):
     def condition(self,ctype,funct):
         """Affect a specific action (usually a condition) to the execution of the event"""
         pass
+
+    def __repr__(self):
+        return "MidiTrigger({}/{}/{})@{}".format(self.messagetype,self.value,self.intensity,self.output)
 
 class MatchError(Exception):
     pass

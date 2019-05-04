@@ -73,7 +73,7 @@ class mappingTest(minitest.simpleTestUnit):
         else:
             self.addFailure("Incorrect fields: "+inc[:-1])
 
-        self.currentTest("Testing Config")
+        self.currentTest("Loading Config")
         try:
             self.act=GrandMA2.Action("patch/default.ini")
             self.addSuccess()
