@@ -23,3 +23,6 @@ class BasicAction(object):
     def __call__(self,config):
         """Resolve the current action, all actions will be performed depending on what's inside the mapping and the config"""
         pass
+
+class MatchError(Exception):
+    pass

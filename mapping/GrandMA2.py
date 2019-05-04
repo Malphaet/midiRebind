@@ -1,4 +1,4 @@
-from mapping import BasicMessageParse,BasicAction
+from mapping import BasicMessageParse,BasicAction,MatchError
 import mido
 import re,configparser
 
@@ -36,13 +36,20 @@ class Action(BasicAction):
         self.config=configparser.ConfigParser()
         self.config.read(config)
         self.sections={}
-        self.outputs={} #Have every output in a dict
+        self.outputs={} #Have every output in a dict THIS PART IS SUPPOSEDLY ALREADY TAKEN CARE OF
+
+        # Very cheesy way to figure out notes from control, I should find a better way, but I can't be bothered to
         self.dec10=[str(x) for x in range(10)]
+
         # Parse config & check sanity
         if "interface" not in self.config:
             raise IOError #You must define an interface to connect to
+
+        #TODO WARNING; THIS IS SUPPOSEED TO BE TAKEN CARE BY THE FUNCTION CALLING Action()
+        self.outputs={1:self.config["interface"]["output1"], 2:self.config["interface"]["output2"]}
+
         self.populateSections()
-        print self.sections
+        #self.prettyprint()
 
     def populateSections(self):
         "Create all the call setups"
@@ -86,12 +93,10 @@ class Action(BasicAction):
     def makeAllKeys(self,key,action,startkey=0,stopkey=0):
         """Make all the actions associated with the key
         startkey and stopkey indicate if an interpolation over the values is to be made"""
-        #print key,action,startkey,stopkey
         #Check if there are multiple actions to do
         if ';' in action:
             allactions=[]
             for a in action.split(";"):
-                #print a
                 allactions+=self.makeAllKeys(key,a,startkey,stopkey)
             return allactions
         try:
@@ -110,15 +115,17 @@ class Action(BasicAction):
                     intensity=127
             else:
                 raise ValueError
-            #print "io:{} act:{} note:{} int:{}".format(interfaceout,midiaction,note,intensity)
             intensity,interfaceout=int(intensity),int(interfaceout)
         except:
             print("Config key {} is incorrect, values {} can't be unpacked".format(key,action))
-
-
-        return [MidiTrigger(interfaceout,midiaction,note,self.findIntensity(key,startkey,stopkey,note))]
-
-    def findIntensity(self,key,startkey,stopkey,note):
+        try:
+            return [MidiTrigger(self.outputs[interfaceout],midiaction,self.findNote(key,startkey,stopkey,note),intensity)]
+        except KeyError:
+            print("Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,self.outputs.keys()))
+            pass #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
+            return []
+    def findNote(self,key,startkey,stopkey,note):
+        "Find the note to bind to the received one"
         if startkey!=stopkey: #do an interpolation over the values
             if "-" in note: #there is a range to interpolate over to
                 nmin,nmax=note.split("-")
@@ -132,6 +139,7 @@ class Action(BasicAction):
                 pad=1
             return nmin+(key-startkey)*pad
         return int(note)
+
     def format(self,command,number,page):
         "Format a match to call the correct action"
         try:
@@ -144,6 +152,17 @@ class Action(BasicAction):
         but since the actual implementation is custom made... go wild ?"""
         # Try a predefined action
         pass
+
+    def __repr__(self):
+        return(self.sections)
+
+    def prettyprint(self):
+        for sect in self.sections:
+            print(sect)
+            for subsect in self.sections[sect]:
+                print(" > "+subsect)
+                for elt in self.sections[sect][subsect]:
+                    print("    {} : {}".format(elt,self.sections[sect][subsect][elt]))
 
 FTrue=lambda x: True
 
@@ -165,7 +184,4 @@ class MidiTrigger(object):
         pass
 
     def __repr__(self):
-        return "MidiTrigger({}/{}/{})@{}".format(self.messagetype,self.value,self.intensity,self.output)
-
-class MatchError(Exception):
-    pass
+        return "<MT>({}/{}/{})@{}".format(self.messagetype,self.value,self.intensity,self.output)
