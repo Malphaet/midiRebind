@@ -80,22 +80,69 @@ class mappingTest(minitest.simpleTestUnit):
         except IOError:
             self.addFailure("Can't load config file")
 
-        self.currentTest("Testing the formatter")
+        #self.act.prettyprint()
+        self.currentTest("Testing the request formatter")
         try:
-            setsect=self.act.format("set","1","1")
+            setsect=self.act.findAction("set","1","1")
             try:
-                self.act.format("set","2","3")
+                self.act.findAction("set","2","3")
                 self.addFailure("Not supposed to load page 3")
             except:
                 try:
-                    self.act.format("fire","2","11")
+                    self.act.findAction("fire","13","2")
                     self.addSuccess()
                 except:
                     self.addFailure("Can't acess the fire section")
         except:
-            self.addFailure("Can't get (set 1 on page 1)")
+            self.addFailure("Can't get (note 1 on page 1)")
 
+        self.currentTest("Testing the loaded config")
+        try:
+            if len(self.act.findAction("set",1,'5'))==2:
+                self.addSuccess()
+            else:
+                self.addFailure("Action 1 section 5 (set/5) is supposed to contain 2 elements")
+        except:
+            self.addFailure("Can't find action 1 (set/5)")
+        # A couple more test would be wise, but nearing completion seems more important atm
 
+        self.currentTest("Testing a message")
+        try:
+            self.act.findAction("set",1,"5")
+            self.addSuccess()
+        except:
+            self.addFailure("Failed to load action")
+
+        self.currentTest("Testing the valuefn")
+        try:
+            acts=self.act.findAction("set",56,"1")
+            for act in acts:
+                if act.valuefn(51)==100:
+                    self.addSuccess()
+        except:
+            self.addFailure("Function for key {} isn't working".format(56))
+
+        self.currentTest("Testing the toggle")
+        try:
+            st=True
+            acts=self.act.findAction("fire",38,"1")
+            for act in acts:
+                if not act.toggle:
+                    self.addFailure("Trigger isn't true")
+                    st=False
+                    break
+        except:
+            self.addFailure("Toggle for key 38 isn't working")
+        if st:
+            self.addSuccess()
+        else:
+            self.addFailure()
+
+        self.currentTest("Testing call")
+        acts=self.act.findAction("fire",38,"1")
+        for act in acts:
+            act(12)
+        #self.act.prettyprint()
 
     def testParse(self,message):
         try:

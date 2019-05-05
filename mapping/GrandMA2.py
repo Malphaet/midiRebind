@@ -1,4 +1,4 @@
-from mapping import BasicMessageParse,BasicAction,MatchError
+from mapping.base import BasicMessageParse,BasicAction,MatchError
 import mido
 import re,configparser
 
@@ -73,14 +73,16 @@ class Action(BasicAction):
         keys={}
         for key in conf: # Reading every mapping and liking it to the appropriate Trigger
             if "/" in key: # There is a condition to an action
-                note,ctype=key.split("/")
+                note,atype=key.split("/")
                 if "-" in note:
                     nmin,nmax=note.split("-")
                     nmin,nmax=int(nmin),int(nmax)
                     for i in range(nmin,nmax):
-                        pass#keys[i].condition(ctype,conf[key])
+                        for trigger in (keys[int(i)]):
+                            trigger.addspecial(atype,conf[key])
                 else:
-                    pass#keys[note].condition(ctype,conf[key])
+                    for trigger in keys[int(note)]:
+                        trigger.addspecial(atype,conf[key])
             elif "-" in key: # There is a range of values to map
                 nmin,nmax=key.split("-")
                 nmin,nmax=int(nmin),int(nmax)
@@ -120,10 +122,13 @@ class Action(BasicAction):
             print("Config key {} is incorrect, values {} can't be unpacked".format(key,action))
         try:
             return [MidiTrigger(self.outputs[interfaceout],midiaction,self.findNote(key,startkey,stopkey,note),intensity)]
-        except KeyError:
-            print("Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,self.outputs.keys()))
-            pass #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
+        except (KeyError):
+            print("Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.outputs.keys()]))
+            return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
+        except ValueError:
+            print("Incorrect values given to the midi message {}".format(action))
             return []
+
     def findNote(self,key,startkey,stopkey,note):
         "Find the note to bind to the received one"
         if startkey!=stopkey: #do an interpolation over the values
@@ -134,18 +139,18 @@ class Action(BasicAction):
                 nmin=int(note)
                 nmax=nmin+stopkey-startkey #Just do the interpolation linearly
             if nmax-nmin!=stopkey-startkey:
-                pad=(nmax-nmin)/(stopkey-startkey)
+                pad=int((nmax-nmin)/(stopkey-startkey))
             else:
                 pad=1
             return nmin+(key-startkey)*pad
         return int(note)
 
-    def format(self,command,number,page):
-        "Format a match to call the correct action"
+    def findAction(self,command,number,page):
+        "Find the correct Action when a command is received"
         try:
-            return self.sections[command][page]
+            return self.sections[command][str(page)][int(number)]
         except:
-            return self.sections[command]["*"]
+            return self.sections[command]["*"][int(number)]
 
     def __call__(self,match):
         """Launch the action depending on the config, the config format is supposed to be as canon as possible
@@ -158,13 +163,19 @@ class Action(BasicAction):
 
     def prettyprint(self):
         for sect in self.sections:
-            print(sect)
             for subsect in self.sections[sect]:
-                print(" > "+subsect)
+                print("[{}] > {}".format(sect,subsect))
                 for elt in self.sections[sect][subsect]:
-                    print("    {} : {}".format(elt,self.sections[sect][subsect][elt]))
+                    print("  {} : {}".format(elt,self.sections[sect][subsect][elt]))
 
 FTrue=lambda x: True
+RecognisedMessagesTypes={
+    "note":["note_on","note","velocity"],
+    "sysex":["sysex","data"],
+    "cc":["control_change","control","value"],
+    "on":["note_on","note","velocity"],
+    "off":["note_off","note","velocity"],
+    "pc":["program_change","program"]}
 
 class MidiTrigger(object):
     """A midi trigger, will do a specific action when called"""
@@ -173,15 +184,61 @@ class MidiTrigger(object):
         self.messagetype=messagetype
         self.value=value
         self.intensity=intensity
-        self.condition=FTrue
+        self.valuefn=None
+        message=RecognisedMessagesTypes[messagetype]
+        attributes={}
+        self.toggle=None
+        attributes[message[1]]=value
+        self.valuetype={message[1]:0}
+        try:
+            attributes[message[2]]=intensity
+        except IndexError:
+            pass
+
+        self.message=mido.Message(RecognisedMessagesTypes[messagetype][0],**attributes)
 
     def __call__(self,val):
         """Execute the call if the condition is true"""
-        pass
+        #for cond in self.conditions:
+        #    if not cond(val):
+        #        return #A condition isn't met, returning
+        if self.valuefn:
+            val=self.valuefn(val)
+        if self.toggle!=None:
+            if self.toggle:
+                val=self.valtrue
+            else:
+                val=self.valfalse
 
-    def condition(self,ctype,funct):
+        print(val)
+        self.message.copy()
+        return self.sendmessage()
+
+    def sendmessage(self):
+        print("SENDING: ")
+        print(self.message)
+
+    def addspecial(self,typ,val):
         """Affect a specific action (usually a condition) to the execution of the event"""
-        pass
+        if typ == "val":
+            self.addvalfn(val)
+        elif typ == "toggle":
+            valt,valf=val.split("/")
+            self.addstate(int(valt),int(valf))
+
+    def addvalfn(self,fn):
+        "Add a special function to calculate the value"
+        try:
+            self.valuefn=eval(fn)
+            #print(self.valuegn(42))
+        except:
+            print("Cant evaluate funtion {}".format(fn))
+
+    def addstate(self,valtrue,valfalse):
+        "The message will now send two state values intead"
+        self.toggle=True
+        self.valtrue=valtrue
+        self.valfalse=valfalse
 
     def __repr__(self):
         return "<MT>({}/{}/{})@{}".format(self.messagetype,self.value,self.intensity,self.output)
