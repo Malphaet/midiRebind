@@ -26,15 +26,18 @@ class MessageParse(BasicMessageParse):
         else:
             raise MatchError
 
-# This funtion is MANDATORY, it makes the link between MessageParse and Action
-def CallAction(match,ActionObj):
-    "Make the link between the regex and the action"
-    pass
 
 # An Action object MUST be included in the file.
-# Interitance and method override can be used, but aren't needed here
-# Action(config)
-Action=BasicAction
+class Action(BasicAction):
+    """The list of action to perform when a message is read"""
+    def __init__(self, interface):
+        super(Action, self).__init__(interface)
+
+    # This funtion is MANDATORY, it makes the link between MessageParse and Action
+    def __call__(self,match):
+        "Make the link between the regex and the action"
+        print(match)
+
 
 # Same as above, import BasicMidiInterface as MidiInterface could be used instead
 # MidiInterface(config)

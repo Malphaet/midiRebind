@@ -44,6 +44,7 @@ class BasicMidiInterface(object):
             print("[ERROR] Impossible to open output {} (available are {})".format(name,mido.get_output_names()))
             o=None
         return o
+        
 class BasicMessageParse(object):
     """Classic System Specific Midi Message as Hex (BasicSyHexParse).
     Uses one method, parseMidi to parse the message and return a BasicMapping object with the mapping of the message inside"""

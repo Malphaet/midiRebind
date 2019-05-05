@@ -1,10 +1,12 @@
 # midiRebind
-Get/send midi commands to a GrandMA but can be configured to bind any custom SysEx message
+Was originally designed to get/send midi commands to a GrandMA but can be configured to bind any custom SysEx or midi (or whatever actually) message
+
 To do so add a custom patch (or use a currently defined one, but chances are patches made for one SysEx won't work on another) and add a parser in the mapping directory
 
 # Depends
-* Mostly mido (pip install mido) for the midi binding and blessings for the testing (pip install blessings)
-* test.py depends on the submodule minitest witch also depends on blessings but is not necessary
+* Mostly mido (pip install mido) for the midi binding and rtmidi (sudo apt install python-rtmidi)
+* test.py depends on the submodule minitest witch also depends on blessings (pip install blessings). test.py is not core of the program
+* This program is python3 compliant (as long as you install the python3 dependencies instead (pip3 install mido and install python3-rtmidi))
 
 # Config Syntax
 
