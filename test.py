@@ -75,7 +75,7 @@ class mappingTest(minitest.simpleTestUnit):
 
         self.currentTest("Loading Config")
         try:
-            self.act=GrandMA2.Action("patch/default.ini")
+            self.act=GrandMA2.Action("patch/test.ini")
             self.addSuccess()
         except IOError:
             self.addFailure("Can't load config file")
@@ -128,11 +128,11 @@ class mappingTest(minitest.simpleTestUnit):
             acts=self.act.findAction("fire",38,"1")
             for act in acts:
                 if not act.toggle:
-                    self.addFailure("Trigger isn't true")
+                    self.addFailure("Trigger isn't assigned")
                     st=False
                     break
         except:
-            self.addFailure("Toggle for key 38 isn't working")
+            self.addFailure("Toggle for key 38 isn't assigned")
         if st:
             self.addSuccess()
         else:
@@ -142,6 +142,11 @@ class mappingTest(minitest.simpleTestUnit):
         acts=self.act.findAction("fire",38,"1")
         for act in acts:
             act(12)
+            st=act.toggle
+            act(12)
+            st1=act.toggle
+            if st==st1:
+                self.addFailure("State not changing after a call")
         #self.act.prettyprint()
 
     def testParse(self,message):
@@ -162,5 +167,17 @@ class mappingTest(minitest.simpleTestUnit):
             else:
                 res+=" "+str(int(hx,16))
         return res
+
+class ConfigTest(minitest.simpleTestUnit):
+    def __init__(self):
+        super(ConfigTest, self).__init__("Testing the config loader")
+
+    def _testAll(self):
+        self.currentTest("Loading config")
+        from mapping import GrandMA2
+        GrandMA2.MidiInterface("patch/test.ini")
+        self.addSuccess()
+
 allTests.addTest(mappingTest())
+allTests.addTest(ConfigTest())
 allTests.test()
