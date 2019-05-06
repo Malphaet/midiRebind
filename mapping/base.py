@@ -169,7 +169,7 @@ class BasicActions(object):
         try:
             return [BasicMidiTrigger(self.interface.interfaceOut(int(interfaceout)),midiaction,self.findNote(key,startkey,stopkey,note),intensity)]
         except (KeyError):
-            print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.output.keys()]))
+            print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.outputs.keys()]))
             return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
         except ValueError:
             print("[WARNING] Incorrect values given to the midi message {}".format(action))
@@ -258,15 +258,18 @@ class BasicMidiTrigger(object):
         #    if not cond(val):
         #        return #A condition isn't met, returning
         change=self.value
+
         if self.valuefn:
             change=self.valuefn(val)
-        if self.toggle!=None:
+        elif self.toggle!=None:
             if self.toggle:
                 change=self.valtrue
             else:
                 change=self.valfalse
-        if change!=self.value and change != None and change !="":
-            self.value=change
+        else:
+            change=val
+        if change != None and change !="":
+            self.value=val
             self.valuetype[list(self.valuetype)[0]]=change
             self.message=self.message.copy(**self.valuetype)
 

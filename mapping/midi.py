@@ -50,7 +50,7 @@ class Actions(BasicActions):
         try:
             listact=self.findAction(match.type,match.note,"*")
             for act in listact:
-                act(value)
+                act(match.value)
         except:
             # No action linked to the trigger
             pass
