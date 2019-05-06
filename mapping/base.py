@@ -59,7 +59,7 @@ class BasicMidiInterface(object):
             self.input.close
         except:
             pass
-        
+
 
 class BasicMessageParse(object):
     """Classic System Specific Midi Message as Hex (BasicSyHexParse).
@@ -132,9 +132,13 @@ class BasicActions(object):
                 nmin,nmax=key.split("-")
                 nmin,nmax=int(nmin),int(nmax)
                 for i in range(nmin,nmax):
-                    keys[i]=self.makeAllKeys(i,conf[key],startkey=nmin,stopkey=nmax) #Do a different trigger for every ; and link to a different interface for every n/
+                    if i not in keys:
+                        keys[i]=[]
+                    keys[i]+=self.makeAllKeys(i,conf[key],startkey=nmin,stopkey=nmax) #Do a different trigger for every ; and link to a different interface for every n/
             else: # Nothing fancy
-                keys[int(key)]=self.makeAllKeys(int(key),conf[key])
+                if int(key) not in keys:
+                    keys[int(key)]=[]
+                keys[int(key)]+=self.makeAllKeys(int(key),conf[key])
         return keys
 
     def makeAllKeys(self,key,action,startkey=0,stopkey=0):
