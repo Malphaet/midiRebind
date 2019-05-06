@@ -90,9 +90,6 @@ class BasicActions(object):
         if "interface" not in self.config:
             raise IOError #You must define an interface to connect to
 
-        #TODO WARNING; THIS IS SUPPOSEED TO BE TAKEN CARE BY THE FUNCTION CALLING Action()
-        #self.outputs={1:self.config["interface"]["output1"], 2:self.config["interface"]["output2"]}
-
         self.populateSections()
         #self.prettyprint()
 
@@ -276,8 +273,8 @@ class BasicMidiTrigger(object):
     def sendmessage(self):
         if self.toggle!=None:
             self.toggle=not self.toggle
-        #print("SENDING:",self.message)
-        self.interface.send(self.message) #Needs interface implementation
+        #print("SENDING:",self.message) #TODO Add Verbose option
+        self.interface.send(self.message)
 
     def addspecial(self,typ,val):
         """Affect a specific action (usually a condition) to the execution of the event"""

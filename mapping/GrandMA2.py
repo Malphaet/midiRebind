@@ -64,7 +64,6 @@ class Actions(BasicActions):
             # No action linked to the trigger
             pass
 
-
 # Same as above, import BasicMidiInterface as MidiInterface could be used instead
 # MidiInterface(config)
 MidiInterface=BasicMidiInterface
