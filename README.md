@@ -5,7 +5,7 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 
 # Depends
 * Mostly mido (pip install mido) for the midi binding and rtmidi (sudo apt install python-rtmidi)
-* test.py depends on the submodule minitest witch also depends on blessings (pip install blessings). test.py is not core of the program
+* test.py depends on the submodule minitest witch also depends on blessings (pip install blessings). test.py is not a core part of the program
 * This program is python3 compliant (as long as you install the python3 dependencies instead (pip3 install mido and install python3-rtmidi))
 
 # Config Syntax

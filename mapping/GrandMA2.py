@@ -1,4 +1,4 @@
-from mapping.base import BasicMessageParse,BasicAction,MatchError,BasicMidiInterface
+from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
 import mido
 import re,configparser
 
@@ -28,15 +28,34 @@ class MessageParse(BasicMessageParse):
 
 
 # An Action object MUST be included in the file.
-class Action(BasicAction):
+class Actions(BasicActions):
     """The list of action to perform when a message is read"""
     def __init__(self, interface):
-        super(Action, self).__init__(interface)
+        super(Actions, self).__init__(interface)
 
     # This funtion is MANDATORY, it makes the link between MessageParse and Action
     def __call__(self,match):
         "Make the link between the regex and the action"
-        print(match)
+        action=commandlist[int(match.group('command'))]
+        id,value="1","1"
+        if action=="set":
+            data=match.group("data")
+            data=data.split(" ")
+            page=int(data[1])
+            id=int(data[0])
+            # value=int(data[2])/128+int(data[3])/1.28 the percent value
+            value=int(data[3]) # Just mapped from 0 to 127
+        elif action=="fire":
+            id=int(match.group("data")) # Can only be from 0 to 255 ?
+            value=""
+        #print(action,id,page)
+        try:
+            listact=self.findAction(action,id,page)
+            for act in listact:
+                act(value)
+        except:
+            # No action linked to the trigger
+            pass
 
 
 # Same as above, import BasicMidiInterface as MidiInterface could be used instead

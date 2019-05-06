@@ -28,6 +28,14 @@ class BasicMidiInterface(object):
                     self.outputs[int(nb)]=self.openout(self.config["interface"][elt])
                 #self.outputs.append(self.config["interface"][elt])
 
+    def interfaceIn(self,number=1):
+        "Return the input interface, as of now number as no use"
+        return self.input
+
+    def interfaceOut(self,number):
+        "Return the output interface related to the number given"
+        return self.outputs[int(number)]
+
     def openin(self,name):
         "Try and open an output interface"
         try:
@@ -44,7 +52,15 @@ class BasicMidiInterface(object):
             print("[ERROR] Impossible to open output {} (available are {})".format(name,mido.get_output_names()))
             o=None
         return o
+    def __delete__(self):
+        try:
+            for i in self.outputs:
+                i.close()
+            self.input.close
+        except:
+            pass
         
+
 class BasicMessageParse(object):
     """Classic System Specific Midi Message as Hex (BasicSyHexParse).
     Uses one method, parseMidi to parse the message and return a BasicMapping object with the mapping of the message inside"""
@@ -57,15 +73,15 @@ class BasicMessageParse(object):
         """Take a midi SyxEx message and return a BasicAction (there can be many children of BasicAction to take more properly care of the cases)"""
         return BasicMapping(self._mapping)
 
-class BasicAction(object):
+class BasicActions(object):
     """The list of action to perform when a message is read"""
-    def __init__(self,config):
+    def __init__(self,midiInterface):
         """Parse the config and ready all return actions"""
         # Load config, in a near future, the config will be preloaded beforehand, but for right now, practicallity will prevail
-        self.config=configparser.ConfigParser()
-        self.config.read(config)
+        self.config=midiInterface.config
+        self.interface=midiInterface
         self.sections={}
-        self.outputs={} #Have every output in a dict THIS PART IS SUPPOSEDLY ALREADY TAKEN CARE OF
+        #self.outputs={} #Have every output in a dict THIS PART IS SUPPOSEDLY ALREADY TAKEN CARE OF
 
         # Very cheesy way to figure out notes from control, I should find a better way, but I can't be bothered to
         self.dec10=[str(x) for x in range(10)]
@@ -75,7 +91,7 @@ class BasicAction(object):
             raise IOError #You must define an interface to connect to
 
         #TODO WARNING; THIS IS SUPPOSEED TO BE TAKEN CARE BY THE FUNCTION CALLING Action()
-        self.outputs={1:self.config["interface"]["output1"], 2:self.config["interface"]["output2"]}
+        #self.outputs={1:self.config["interface"]["output1"], 2:self.config["interface"]["output2"]}
 
         self.populateSections()
         #self.prettyprint()
@@ -150,9 +166,9 @@ class BasicAction(object):
         except:
             print("[WARNING] Config key {} is incorrect, values {} can't be unpacked".format(key,action))
         try:
-            return [BasicMidiTrigger(self.outputs[interfaceout],midiaction,self.findNote(key,startkey,stopkey,note),intensity)]
+            return [BasicMidiTrigger(self.interface.interfaceOut(int(interfaceout)),midiaction,self.findNote(key,startkey,stopkey,note),intensity)]
         except (KeyError):
-            print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.outputs.keys()]))
+            print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.output.keys()]))
             return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
         except ValueError:
             print("[WARNING] Incorrect values given to the midi message {}".format(action))
@@ -216,6 +232,7 @@ class BasicMidiTrigger(object):
         self.messagetype=messagetype
         self.value=value
         self.intensity=intensity
+        self.interface=interface
         self.valuefn=None
         message=RecognisedMessagesTypes[messagetype]
         attributes={}
@@ -247,7 +264,7 @@ class BasicMidiTrigger(object):
                 change=self.valtrue
             else:
                 change=self.valfalse
-        if change!=self.value:
+        if change!=self.value and change != None and change !="":
             self.value=change
             self.valuetype[list(self.valuetype)[0]]=change
             self.message=self.message.copy(**self.valuetype)
@@ -256,7 +273,7 @@ class BasicMidiTrigger(object):
         if self.toggle!=None:
             self.toggle=not self.toggle
         #print("SENDING:",self.message)
-        #self.interface.send(self.message) #Needs interface implementation
+        self.interface.send(self.message) #Needs interface implementation
 
     def addspecial(self,typ,val):
         """Affect a specific action (usually a condition) to the execution of the event"""

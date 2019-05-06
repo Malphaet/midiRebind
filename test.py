@@ -1,7 +1,6 @@
 from minitest import minitest
+import configparser,mido
 #from mapping import GrandMA2
-
-allTests=minitest.testGroup("Nominal test units",verbose=True,align=50)
 
 class gmaPyTest(minitest.simpleTestUnit):
     """Testing the General interface"""
@@ -36,7 +35,7 @@ class mappingTest(minitest.simpleTestUnit):
         sucess=1
         for X,D in zip(testX,testD):
             #print("{} / {} : {} [{}]".format(X,D,self.toDec(X),D==self.toDec(X)))
-            if self.toDec(X)!=D:
+            if toDec(X)!=D:
                 self.addFailure("Can't convert Hex to Dec")
                 sucess=0
                 break
@@ -51,7 +50,7 @@ class mappingTest(minitest.simpleTestUnit):
             self.addSuccess()
 
         self.currentTest("Test with well-formed message")
-        msg=self.toDec("F0 7F 7F 02 7F 01 32 31 2E 35 30 30 F7")
+        msg=toDec("F0 7F 7F 02 7F 01 32 31 2E 35 30 30 F7")
         if self.testParse(msg):
             self.addSuccess()
         else:
@@ -75,7 +74,19 @@ class mappingTest(minitest.simpleTestUnit):
 
         self.currentTest("Loading Config")
         try:
-            self.act=GrandMA2.Action("patch/test.ini")
+            class Emptyconfig():
+                def __init__(self,configfile):
+                    self.config=configparser.ConfigParser()
+                    self.config.read(configfile)
+                def interfaceOut(self,nb):
+                    class EmptySender():
+                        def __init__(self):
+                            pass
+                        def send(self,wev,**kwargs):
+                            pass
+                    return EmptySender()
+
+            self.act=GrandMA2.Actions(Emptyconfig("patch/test.ini"))
             self.addSuccess()
         except IOError:
             self.addFailure("Can't load config file")
@@ -158,15 +169,15 @@ class mappingTest(minitest.simpleTestUnit):
         except:
             self.addCritical("Can't parse (not supposed to happen)")
 
-    def toDec(self,message):
-        "Taken care of by mido, but testing needs to be done otherwise"
-        res=None
-        for hx in message.split(" "):
-            if res==None:
-                res=str(int(hx,16))
-            else:
-                res+=" "+str(int(hx,16))
-        return res
+def toDec(message):
+    "Taken care of by mido, but testing needs to be done otherwise"
+    res=None
+    for hx in message.split(" "):
+        if res==None:
+            res=str(int(hx,16))
+        else:
+            res+=" "+str(int(hx,16))
+    return res
 
 class ConfigTest(minitest.simpleTestUnit):
     def __init__(self):
@@ -178,6 +189,45 @@ class ConfigTest(minitest.simpleTestUnit):
         GrandMA2.MidiInterface("patch/test.ini")
         self.addSuccess()
 
-allTests.addTest(mappingTest())
-allTests.addTest(ConfigTest())
-allTests.test()
+class LiveTest(minitest.simpleTestUnit):
+    def __init__(self):
+        super(LiveTest, self).__init__("Live test")
+
+    def _testAll(self):
+        self.currentTest("Loading config")
+        from mapping import GrandMA2
+        Inter=GrandMA2.MidiInterface("patch/test.ini")
+        self.addSuccess()
+
+        self.currentTest("Loading message parser")
+        Par=GrandMA2.MessageParse()
+        self.addSuccess()
+
+        self.currentTest("Loading Patch")
+        Acts=GrandMA2.Actions(Inter)
+        self.addSuccess()
+        #Act.prettyprint()
+
+        self.currentTest("Trying match")
+
+        message=toDec("F0 7F 	7F 	02 	7F 	01 	33 37 2E 32 30 30 00 35 20 31 	F7")
+        message=toDec("F0 7F 	7F 	02 	7F 	06 	02 02 4C 39 	F7")
+        try:
+            match=Par(message)
+            self.addSuccess()
+        except GrandMA2.MatchError:
+            self.addFailure("Can't match '{}'".format(message))
+        except:
+            self.addFailure("Error while matching")
+
+        self.currentTest("Sending message")
+        match=Acts(match)
+        self.addSuccess()
+
+if __name__ == '__main__':
+    allTests=minitest.testGroup("Nominal test units",verbose=True,align=50)
+
+    allTests.addTest(mappingTest())
+    allTests.addTest(ConfigTest())
+    allTests.addTest(LiveTest())
+    allTests.test()
