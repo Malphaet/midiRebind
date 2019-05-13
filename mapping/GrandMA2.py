@@ -2,7 +2,7 @@ from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInte
 import mido
 import re,configparser
 
-commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",11:"go_off"}
+commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",11:"go_off",10:"exec"}
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
 class MessageParse(BasicMessageParse):
     """Parsing of a gma SyEx message this parser is used once and will return a different Action object every time it is called"""
@@ -29,6 +29,7 @@ class MessageParse(BasicMessageParse):
             self.commandformat=message[3]
             self.command=message[4]
             self.data=message[5:]
+            #print(self)
             return self
         except:
             raise MatchError("Can't parse the data {}".format(message))

@@ -32,7 +32,7 @@ if __name__ == '__main__':
             except Module.MatchError:
                 pass
             except:
-                print("[Unexpected error] {}".format(sys.exc_info()))
+                print("[Unexpected error@midibind.py] {}".format(sys.exc_info()))
     except ImportError:
         print("[Error] Module {} doesn't exist".format(interpath))
     except KeyboardInterrupt:
