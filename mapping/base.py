@@ -119,7 +119,7 @@ class BasicActions(object):
                 note,atype=key.split("/")
                 if "-" in note:
                     nmin,nmax=note.split("-")
-                    nmin,nmax=int(nmin),int(nmax)
+                    nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
                     for i in range(nmin,nmax):
                         for trigger in (keys[int(i)]):
                             trigger.addspecial(atype,conf[key])
@@ -134,9 +134,10 @@ class BasicActions(object):
                         keys[i]=[]
                     keys[i]+=self.makeAllKeys(i,conf[key],startkey=nmin,stopkey=nmax) #Do a different trigger for every ; and link to a different interface for every n/
             else: # Nothing fancy
-                if int(key) not in keys:
-                    keys[int(key)]=[]
-                keys[int(key)]+=self.makeAllKeys(int(key),conf[key])
+                key=trunc(float(key))
+                if key not in keys:
+                    keys[key]=[]
+                keys[key]+=self.makeAllKeys(key,conf[key])
         return keys
 
     def makeAllKeys(self,key,action,startkey=0,stopkey=0):
@@ -156,23 +157,27 @@ class BasicActions(object):
                 midiaction,note=pack
                 interfaceout,intensity=1,127
             elif len(pack)==3:
-                if pack[0][0] not in self.dec10:
+                if pack[0][0] not in self.dec10: #Extremely cheesy way to know if it's the interface nb or a command
                     midiaction,note,intensity=pack
                     interfaceout=1
                 else:
                     interfaceout,midiaction,note=pack
                     intensity=127
             else:
-                raise ValueError
+                raise ValueError("Number of actions incorrect")
             intensity,interfaceout=int(intensity),int(interfaceout)
         except:
             print("[WARNING] Config key {} is incorrect, values {} can't be unpacked".format(key,action))
         try:
-            return [BasicMidiTrigger(self.interface.interfaceOut(int(interfaceout)),midiaction,self.findNote(key,startkey,stopkey,note),intensity)]
+            interF=self.interface.interfaceOut(int(interfaceout))
+            noteN=self.findNote(key,startkey,stopkey,note)
+            return [BasicMidiTrigger(interF,midiaction,noteN,intensity)]
         except (KeyError):
             print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.outputs.keys()]))
             return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
         except ValueError:
+            import sys
+            print(sys.exc_info())
             print("[WARNING] Incorrect values given to the midi message {}".format(action))
             return []
 
@@ -181,9 +186,9 @@ class BasicActions(object):
         if startkey!=stopkey: #do an interpolation over the values
             if "-" in note: #there is a range to interpolate over to
                 nmin,nmax=note.split("-")
-                nmin,nmax=int(nmin),int(nmax)
+                nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
             else:
-                nmin=int(note)
+                nmin=trunc(float(note))
                 nmax=nmin+stopkey-startkey #Just do the interpolation linearly
             if nmax-nmin!=stopkey-startkey:
                 pad=int((nmax-nmin)/(stopkey-startkey))
