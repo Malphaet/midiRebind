@@ -1,6 +1,7 @@
 # This is the basic mapping of a midi message, all subsequent messages must either be children of this or implement those methods
 import configparser
 import mido,re
+from math import trunc
 
 class BasicMidiInterface(object):
     "Basic midi interface"
@@ -127,7 +128,7 @@ class BasicActions(object):
                         trigger.addspecial(atype,conf[key])
             elif "-" in key: # There is a range of values to map
                 nmin,nmax=key.split("-")
-                nmin,nmax=int(nmin),int(nmax)
+                nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
                 for i in range(nmin,nmax):
                     if i not in keys:
                         keys[i]=[]

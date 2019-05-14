@@ -25,7 +25,10 @@ if __name__ == '__main__':
 
         for msg in Inter.input:
             if args.verbose:
-                print("[Received] {}".format(msg))
+                try:
+                    print("[Received] {}".format(str.join([hex(i).split('x')[1] for i in msg.data])))
+                except:
+                    print("[Received {}".format(msg))
             try:
                 match=Par(msg)
                 res=Acts(match)

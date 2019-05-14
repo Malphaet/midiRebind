@@ -2,7 +2,9 @@ from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInte
 import mido
 import re,configparser
 
-commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",11:"go_off",10:"exec"}
+commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",10:"go_off"}
+# Doc says 11 is go_off, test says otherwise
+
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
 class MessageParse(BasicMessageParse):
     """Parsing of a gma SyEx message this parser is used once and will return a different Action object every time it is called"""
@@ -36,6 +38,21 @@ class MessageParse(BasicMessageParse):
 
     def __str__(self):
         return "<MessageParse>[id:{}/df:{}/cmd:{}/data:{}]".format(self.deviceid,self.commandformat,self.command,self.data)
+
+def addasHex(data):
+    "Take a table, return a str of every hex48 gma specific nb and the rest of the table"
+    i,mx=0,len(data)
+    r=""
+    while i<mx:
+        if data[i]==0:
+            i+=1
+            break
+        elif data[i]==46:
+            r+="."
+        else:
+            r+=str(int(data[i])-48)
+        i+=1
+    return r,data[i:]
 # An Action object MUST be included in the file.
 class Actions(BasicActions):
     """The list of action to perform when a message is read"""
@@ -53,10 +70,20 @@ class Actions(BasicActions):
             id=int(data[0])
             # value=int(data[2])/128+int(data[3])/1.28 the percent value
             value=int(data[3]) # Just mapped from 0 to 127
-        elif action=="fire":
-            id=int(match.data) # Can only be from 0 to 255 ?
-            value=""
-            page=""
+        elif action=="go":
+            nb,info=addasHex(match.data) #Could do with clever division, but I don't want to right now
+            info,null=addasHex(info)
+            id,page=info.split('.')
+
+            id,page=int(id),int(page)
+            value=int(float(nb)) # There needs to be a way to do without this
+        elif action=="off":
+            nb,info=addasHex(match.data) #Could do with clever division, but I don't want to right now
+            info,null=addasHex(info)
+            id,page=info.split('.')
+
+            id,page=int(id),int(page)
+            value=int(float(nb))
         try:
             listact=self.findAction(action,id,page)
             for act in listact:
