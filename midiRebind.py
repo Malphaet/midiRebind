@@ -1,3 +1,5 @@
+#!/bin/python3
+
 import mido, argparse, sys
 import configparser,importlib
 

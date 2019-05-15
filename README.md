@@ -27,4 +27,7 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
     * 57/toggle = 0/127: Toggle the val between 127 and 0 every time the note is received
 
 # Adding another mapping interface
-* Good luck
+* TODO: Explain it better than just "look at the ones I made"
+
+# Improvements
+* Add Fix values

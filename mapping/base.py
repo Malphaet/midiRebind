@@ -2,6 +2,8 @@
 import configparser
 import mido,re
 from math import trunc
+from math import sin,cos,tan
+from random import randint
 
 class BasicMidiInterface(object):
     "Basic midi interface"
@@ -149,10 +151,12 @@ class BasicActions(object):
             for a in action.split(";"):
                 allactions+=self.makeAllKeys(key,a,startkey,stopkey)
             return allactions
+        binded=False
         try:
             pack=action.split("/")
             if len(pack)==4:
                 interfaceout,midiaction,note,intensity=pack
+                binded=True
             elif len(pack)==2:
                 midiaction,note=pack
                 interfaceout,intensity=1,127
@@ -160,6 +164,7 @@ class BasicActions(object):
                 if pack[0][0] not in self.dec10: #Extremely cheesy way to know if it's the interface nb or a command
                     midiaction,note,intensity=pack
                     interfaceout=1
+                    binded=True
                 else:
                     interfaceout,midiaction,note=pack
                     intensity=127
@@ -171,7 +176,7 @@ class BasicActions(object):
         try:
             interF=self.interface.interfaceOut(int(interfaceout))
             noteN=self.findNote(key,startkey,stopkey,note)
-            return [BasicMidiTrigger(interF,midiaction,noteN,intensity)]
+            return [BasicMidiTrigger(interF,midiaction,noteN,intensity,binded)]
         except (KeyError):
             print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.outputs.keys()]))
             return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
@@ -234,13 +239,15 @@ class MatchError(Exception):
 
 class BasicMidiTrigger(object):
     """A midi trigger, will do a specific action when called"""
-    def __init__(self,interface,messagetype,value,intensity):
+    def __init__(self,interface,messagetype,value,intensity,binded):
         self.output=interface
         self.messagetype=messagetype
         self.value=value
         self.intensity=intensity
+        print(value,intensity)
         self.interface=interface
         self.valuefn=None
+        self.binded=binded
         message=RecognisedMessagesTypes[messagetype]
         attributes={}
         self.toggle=None
@@ -264,14 +271,16 @@ class BasicMidiTrigger(object):
         #    if not cond(val):
         #        return #A condition isn't met, returning
         change=self.value
-
         if self.valuefn:
             change=self.valuefn(val)
-        elif self.toggle!=None:
+        elif self.toggle!=None: # I fear this is intensity that is supposed to change, debug incomming...
             if self.toggle:
                 change=self.valtrue
             else:
                 change=self.valfalse
+        elif self.binded:
+            val=self.intensity
+            print("bind {}".format(val))
         else:
             change=val
         if change != None and change !="":
