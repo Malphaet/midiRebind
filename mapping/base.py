@@ -126,7 +126,8 @@ class BasicActions(object):
                         for trigger in (keys[int(i)]):
                             trigger.addspecial(atype,conf[key])
                 else:
-                    for trigger in keys[int(note)]:
+                    print(note,trunc(float(note)))
+                    for trigger in keys[trunc(float(note))]:
                         trigger.addspecial(atype,conf[key])
             elif "-" in key: # There is a range of values to map
                 nmin,nmax=key.split("-")
@@ -136,10 +137,11 @@ class BasicActions(object):
                         keys[i]=[]
                     keys[i]+=self.makeAllKeys(i,conf[key],startkey=nmin,stopkey=nmax) #Do a different trigger for every ; and link to a different interface for every n/
             else: # Nothing fancy
-                key=trunc(float(key))
-                if key not in keys:
-                    keys[key]=[]
-                keys[key]+=self.makeAllKeys(key,conf[key])
+
+                key_i=trunc(float(key))
+                if key_i not in keys:
+                    keys[key_i]=[]
+                keys[key_i]+=self.makeAllKeys(key_i,conf[key],key_i,key_i)
         return keys
 
     def makeAllKeys(self,key,action,startkey=0,stopkey=0):
@@ -195,7 +197,7 @@ class BasicActions(object):
             else:
                 nmin=trunc(float(note))
                 nmax=nmin+stopkey-startkey #Just do the interpolation linearly
-            if nmax-nmin!=stopkey-startkey:
+            if nmax-nmin!=stopkey-startkey and stopkey!=startkey:
                 pad=int((nmax-nmin)/(stopkey-startkey))
             else:
                 pad=1
@@ -244,7 +246,6 @@ class BasicMidiTrigger(object):
         self.messagetype=messagetype
         self.value=value
         self.intensity=intensity
-        print(value,intensity)
         self.interface=interface
         self.valuefn=None
         self.binded=binded
@@ -270,21 +271,20 @@ class BasicMidiTrigger(object):
         #for cond in self.conditions:
         #    if not cond(val):
         #        return #A condition isn't met, returning
-        change=self.value
+        change=self.intensity
         if self.valuefn:
             change=self.valuefn(val)
-        elif self.toggle!=None: # I fear this is intensity that is supposed to change, debug incomming...
+        elif self.toggle!=None:
             if self.toggle:
                 change=self.valtrue
             else:
                 change=self.valfalse
         elif self.binded:
             val=self.intensity
-            print("bind {}".format(val))
         else:
             change=val
         if change != None and change !="":
-            self.value=val
+            self.intensity=val
             self.valuetype[list(self.valuetype)[0]]=change
             self.message=self.message.copy(**self.valuetype)
 
