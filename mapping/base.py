@@ -5,6 +5,9 @@ from math import trunc
 from math import sin,cos,tan
 from random import randint
 
+def vprint(message):
+    pass
+
 class BasicMidiInterface(object):
     "Basic midi interface"
     def __init__(self,configfile):
@@ -84,7 +87,6 @@ class BasicActions(object):
         self.config=midiInterface.config
         self.interface=midiInterface
         self.sections={}
-        #self.outputs={} #Have every output in a dict THIS PART IS SUPPOSEDLY ALREADY TAKEN CARE OF
 
         # Very cheesy way to figure out notes from control, I should find a better way, but I can't be bothered to
         self.dec10=[str(x) for x in range(10)]
@@ -126,7 +128,7 @@ class BasicActions(object):
                         for trigger in (keys[int(i)]):
                             trigger.addspecial(atype,conf[key])
                 else:
-                    print(note,trunc(float(note)))
+                    #print(note,trunc(float(note)))
                     for trigger in keys[trunc(float(note))]:
                         trigger.addspecial(atype,conf[key])
             elif "-" in key: # There is a range of values to map
@@ -242,6 +244,7 @@ class MatchError(Exception):
 class BasicMidiTrigger(object):
     """A midi trigger, will do a specific action when called"""
     def __init__(self,interface,messagetype,value,intensity,binded):
+        #self.vprint=vprint
         self.output=interface
         self.messagetype=messagetype
         self.value=value
@@ -289,9 +292,9 @@ class BasicMidiTrigger(object):
             self.message=self.message.copy(**self.valuetype)
 
     def sendmessage(self):
+        vprint("[Sent]: {}".format(self.message)) #TODO Add Verbose option
         if self.toggle!=None:
             self.toggle=not self.toggle
-        #print("SENDING:",self.message) #TODO Add Verbose option
         self.interface.send(self.message)
 
     def addspecial(self,typ,val):

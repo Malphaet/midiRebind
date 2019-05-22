@@ -1,7 +1,7 @@
 #!/bin/python3
 
 import mido, argparse, sys
-import configparser,importlib
+import configparser,importlib,mapping
 
 
 if __name__ == '__main__':
@@ -20,17 +20,20 @@ if __name__ == '__main__':
 
         Module=importlib.import_module(interpath)
 
-        #from mapping import GrandMA2
         Inter=Module.MidiInterface(path) # TODO, take directly a config object, will save some time
         Par=Module.MessageParse()
         Acts=Module.Actions(Inter)
 
+        if args.verbose:
+            def vprint(msg):
+                print(msg)
+            mapping.base.vprint=vprint
         for msg in Inter.input:
             if args.verbose:
                 try:
-                    print("[Received] {}".format(str.join([hex(i).split('x')[1] for i in msg.data])))
+                    print("[Received]: {}".format(str.join([hex(i).split('x')[1] for i in msg.data])))
                 except:
-                    print("[Received {}".format(msg))
+                    print("[Received]: {}".format(msg))
             try:
                 match=Par(msg)
                 res=Acts(match)
