@@ -124,22 +124,20 @@ class BasicActions(object):
                 if "-" in note:
                     nmin,nmax=note.split("-")
                     nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
-                    for i in range(nmin,nmax):
-                        for trigger in (keys[int(i)]):
+                    for i in range(nmin,nmax+1): # TODO : If there are exactly as many actions as the keys inside the dict, add one action per key
+                        for trigger in (keys[int(i)]): # TODO : If the key doesn't exist, throw a # WARNING: instead of an error
                             trigger.addspecial(atype,conf[key])
                 else:
-                    #print(note,trunc(float(note)))
                     for trigger in keys[trunc(float(note))]:
                         trigger.addspecial(atype,conf[key])
             elif "-" in key: # There is a range of values to map
                 nmin,nmax=key.split("-")
                 nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
-                for i in range(nmin,nmax):
+                for i in range(nmin,nmax+1):
                     if i not in keys:
                         keys[i]=[]
                     keys[i]+=self.makeAllKeys(i,conf[key],startkey=nmin,stopkey=nmax) #Do a different trigger for every ; and link to a different interface for every n/
             else: # Nothing fancy
-
                 key_i=trunc(float(key))
                 if key_i not in keys:
                     keys[key_i]=[]
@@ -292,12 +290,12 @@ class BasicMidiTrigger(object):
             self.message=self.message.copy(**self.valuetype)
 
     def sendmessage(self):
-        vprint("[Sent]: {}".format(self.message)) #TODO Add Verbose option
+        vprint("[Sent:({}.)]: {}".format(self.interface.name.split(":")[1][:12],self.message))
         if self.toggle!=None:
             self.toggle=not self.toggle
         self.interface.send(self.message)
 
-    def addspecial(self,typ,val):
+    def addspecial(self,typ,val): #TODO : Offer a toggle between two differents messages, maybe a /switch
         """Affect a specific action (usually a condition) to the execution of the event"""
         if typ == "val":
             self.addvalfn(val)
