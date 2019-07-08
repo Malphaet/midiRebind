@@ -81,6 +81,7 @@ class mappingTest(minitest.simpleTestUnit):
                 def interfaceOut(self,nb):
                     class EmptySender():
                         def __init__(self):
+                            self.name="none:none"
                             pass
                         def send(self,wev,**kwargs):
                             pass
