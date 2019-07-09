@@ -2,7 +2,7 @@ from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInte
 import mido
 import re,configparser
 
-commandlist={0:"DCA",55:"IN",84:"MIX",101:"MATRICE",115:"MASTER",82:"MASTER2",51:"PAGE",53:"MUTE"}
+commandlist={127:"DCA",55:"IN",84:"MIX",101:"MATRICE",115:"MASTER",336:"MASTER2",122:"PAGE",53:"MUTE",893:"CUE"}
 # Doc says 11 is go_off, test says otherwise
 
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
@@ -26,7 +26,7 @@ class MessageParse(BasicMessageParse):
             raise MatchError("Message is not sysex")
         try:
             self.typebit=message[5]
-            self.command=message[6]
+            self.command=message[6]+message[5]*127
             self.data=message[7:]
             return self
         except:
@@ -49,25 +49,34 @@ class Actions(BasicActions):
     # This funtion is MANDATORY, it makes the link between MessageParse and Action
     def __call__(self,match):
         "Make the link between the regex and the action"
+        # print(int(match.command))
         action=commandlist[int(match.command)]
         id,value="1","1"
         page=0 # Yamaha consoles don't use pages in a way that is relevant to us
         #"DCA",55:"IN",84:"MIX",101:"MATRICE",115:"MASTER",82:"MASTER2",51:"PAGE"
-        if action in ["DCA","IN","MIX","MATRICE","MASTER","MASTER2"]:
+        if action in ["IN","MIX","MATRICE","MASTER","MASTER2"]:
             data=match.data
             #print(data[6:8],makeInt(data[6:8]))
-            value=makeInt(data[6:8])
+            value=makeInt(data[7:])
             id=int(data[3]) # Just mapped from 0 to 127
+        elif action == "DCA":
+            pass
         elif action=="CUE":
-            pass
+            data=match.data
+            value=int(data[8])*127
+            id=int(data[3])
         elif action=="MUTE":
-            pass
+            data=match.data
+            id=int(data[3])
+            value=int(data[8])*127
         elif action=="PAGE":
-            pass
+            data=match.data
+            id=int(data[3])
+            value=int(data[8])
         else:
             return
         try:
-            print(action,value)
+            # print(action,id,value,data)
             listact=self.findAction(action,id,page)
             for act in listact:
                  act(value)
