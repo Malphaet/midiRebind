@@ -25,9 +25,13 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
   * Advanced usage: Can add logic to the notes. NB: they must be defined first
     * 56/cond = lambda x: x==50 # Function choosing conditions on the value to send
     * 57/toggle = 0/127: Toggle the val between 127 and 0 every time the note is received
+    * 68/func = functionMappedInTheMappingInterface(note,intensity,parameters)
 
 # Adding another mapping interface
 * TODO: Explain it better than just "look at the ones I made"
 
 # Improvements
 * Add Fix values
+* Better note / cc / pc notation
+* Add Fade (in ms) from one value to another
+* Have a way to know last value for the note/cc (the last one sent/received)

@@ -118,7 +118,7 @@ class BasicActions(object):
     def makeTriggers(self,conf):
         "Take a section of a config and put all triggers in a dict"
         keys={}
-        for key in conf: # Reading every mapping and liking it to the appropriate Trigger
+        for key in conf: # Reading every mapping and linking it to the appropriate Trigger
             if "/" in key: # There is a condition to an action
                 note,atype=key.split("/")
                 if "-" in note:
@@ -302,6 +302,8 @@ class BasicMidiTrigger(object):
         elif typ == "toggle":
             valt,valf=val.split("/")
             self.addstate(int(valt),int(valf))
+        elif typ == "funct":
+            self.addspecfn(val)
 
     def addvalfn(self,fn):
         "Add a special function to calculate the value"
@@ -310,6 +312,13 @@ class BasicMidiTrigger(object):
             #print(self.valuegn(42))
         except:
             print("[ERROR] Cant evaluate funtion {}".format(fn))
+
+    def addspecfn(self,val):
+        "Add a funtion (defined in the mapping) with eventual arguments specified in the mapping"
+        try:
+            self.funct=mapping.__get_attribute__(val)
+        except:
+            print("[ERROR] Can't evaluate function {}".function(fn))
 
     def addstate(self,valtrue,valfalse):
         "The message will now send two state values intead"
