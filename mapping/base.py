@@ -22,6 +22,8 @@ class BasicMidiInterface(object):
 
         self.input=""
         self.outputs={}
+        self.functionlist={}
+        self.varlist={}
         #self.outchannels #not as of now, maybe later
         outputmatch=re.compile("output(?P<outnb>\d+)")
         for elt in self.config["interface"]:
@@ -87,6 +89,8 @@ class BasicActions(object):
         self.config=midiInterface.config
         self.interface=midiInterface
         self.sections={}
+        # self.varlist={}
+        # self.functionlist={}
 
         # Very cheesy way to figure out notes from control, I should find a better way, but I can't be bothered to
         self.dec10=[str(x) for x in range(10)]
@@ -97,6 +101,10 @@ class BasicActions(object):
 
         self.populateSections()
         #self.prettyprint()
+
+    # def addFunction(self,fname,function):
+    #     "Add a function to the list of linked functions"
+    #     self.functionlist[fname]=function
 
     def populateSections(self):
         "Create all the call setups"
@@ -178,7 +186,7 @@ class BasicActions(object):
         try:
             interF=self.interface.interfaceOut(int(interfaceout))
             noteN=self.findNote(key,startkey,stopkey,note)
-            return [BasicMidiTrigger(interF,midiaction,noteN,intensity,binded)]
+            return [BasicMidiTrigger(interF,self,midiaction,noteN,intensity,binded)]
         except (KeyError):
             print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.outputs.keys()]))
             return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
@@ -227,6 +235,7 @@ class BasicActions(object):
                 for elt in self.sections[sect][subsect]:
                     print("  {} : {}".format(elt,self.sections[sect][subsect][elt]))
 
+
 FTrue=lambda x: True
 RecognisedMessagesTypes={
     "note":["note_on","note","velocity"],
@@ -241,7 +250,7 @@ class MatchError(Exception):
 
 class BasicMidiTrigger(object):
     """A midi trigger, will do a specific action when called"""
-    def __init__(self,interface,messagetype,value,intensity,binded):
+    def __init__(self,interface,parent,messagetype,value,intensity,binded):
         #self.vprint=vprint
         self.output=interface
         self.messagetype=messagetype
@@ -250,6 +259,8 @@ class BasicMidiTrigger(object):
         self.interface=interface
         self.valuefn=None
         self.binded=binded
+        self.parent=parent
+
         message=RecognisedMessagesTypes[messagetype]
         attributes={}
         self.toggle=None
@@ -316,9 +327,15 @@ class BasicMidiTrigger(object):
     def addspecfn(self,val):
         "Add a funtion (defined in the mapping) with eventual arguments specified in the mapping"
         try:
-            self.funct=mapping.__get_attribute__(val)
-        except:
-            print("[ERROR] Can't evaluate function {}".function(fn))
+            # Lidl parsing incomming;
+            t_parse=val.split("(")
+            funct,params=t_parse[0],t_parse[1][:-1].split(',')
+            print(funct,params,self.interface.functionlist)
+            self.funct=self.interface.functionlist[funct](val,**params)
+        except KeyError:
+            print("[ERROR] Key {} not in list of functions".format(funct))
+        # except:
+        #     print("[ERROR] Can't evaluate function {}".format(val))
 
     def addstate(self,valtrue,valfalse):
         "The message will now send two state values intead"

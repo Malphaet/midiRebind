@@ -145,10 +145,28 @@ class mappingTest(minitest.simpleTestUnit):
                     break
         except:
             self.addFailure("Toggle for key 38 isn't assigned")
+            st=False
         if st:
             self.addSuccess()
-        else:
-            self.addFailure()
+
+        self.currentTest("Testing loading of functions")
+        print(self.gm.functionlist)
+        self.addSuccess()
+
+        self.currentTest("Testing custom function")
+        try:
+            st=True
+            acts=self.act.findAction("custom",77,"2")
+            for act in acts:
+                if not act.function:
+                    st=False
+                    self.addFailure("No custom function defined")
+                    break
+        except:
+            self.addFailure("Can't use custom function")
+            st=False
+        if st:
+            self.addSuccess()
 
         self.currentTest("Testing call")
         acts=self.act.findAction("fire",38,"1")

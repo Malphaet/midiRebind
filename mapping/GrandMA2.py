@@ -5,6 +5,9 @@ import re,configparser
 commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",10:"go_off"}
 # Doc says 11 is go_off, test says otherwise
 
+def testfunction(val,**params):
+    print(val,params)
+
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
 class MessageParse(BasicMessageParse):
     """Parsing of a gma SyEx message this parser is used once and will return a different Action object every time it is called"""
@@ -58,6 +61,7 @@ class Actions(BasicActions):
     """The list of action to perform when a message is read"""
     def __init__(self, interface):
         super(Actions, self).__init__(interface)
+        self.addFunction("testfunction",testfunction)
 
     # This funtion is MANDATORY, it makes the link between MessageParse and Action
     def __call__(self,match):
@@ -92,6 +96,12 @@ class Actions(BasicActions):
             # No action linked to the trigger
             pass
 
+
 # Same as above, import BasicMidiInterface as MidiInterface could be used instead
 # MidiInterface(config)
-MidiInterface=BasicMidiInterface
+class MidiInterface(BasicMidiInterface):
+    "Adding a couple of custom functions"
+
+    def __init__(self,configfile):
+        super(MidiInterface,self).__init__(configfile)
+        self.functionlist["test"]=testfunction

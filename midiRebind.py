@@ -51,3 +51,6 @@ if __name__ == '__main__':
         sys.exit()
     except OSError:
         print('[Error] The patch "patch/{}.ini" is ill-formed or non-existent'.format(args.patch))
+    except TypeError:
+        print("[Error] Can't iterate ofver an emplty list, check the list of inputs for an available input")
+    # except KeyError
