@@ -74,10 +74,16 @@ class mappingTest(minitest.simpleTestUnit):
 
         self.currentTest("Loading Config")
         try:
+            def testfunction(*params):
+                print("| > testfunction used in test",params)
+                return 1
+
             class Emptyconfig():
                 def __init__(self,configfile):
                     self.config=configparser.ConfigParser()
                     self.config.read(configfile)
+                    self.functionlist={"testfunction":testfunction}
+
                 def interfaceOut(self,nb):
                     class EmptySender():
                         def __init__(self):
@@ -86,8 +92,8 @@ class mappingTest(minitest.simpleTestUnit):
                         def send(self,wev,**kwargs):
                             pass
                     return EmptySender()
-
-            self.act=GrandMA2.Actions(Emptyconfig("patch/test.ini"))
+            self.e_config=Emptyconfig("patch/test.ini")
+            self.act=GrandMA2.Actions(self.e_config)
             self.addSuccess()
         except IOError:
             self.addFailure("Can't load config file")
@@ -149,20 +155,18 @@ class mappingTest(minitest.simpleTestUnit):
         if st:
             self.addSuccess()
 
-        self.currentTest("Testing loading of functions")
-        print(self.gm.functionlist)
-        self.addSuccess()
-
         self.currentTest("Testing custom function")
         try:
             st=True
             acts=self.act.findAction("custom",77,"2")
+            # print(acts)
             for act in acts:
-                if not act.function:
+                # print(act,act.funct)
+                if not act.funct or not act.execspecialfn():
                     st=False
                     self.addFailure("No custom function defined")
                     break
-        except:
+        except KeyError:
             self.addFailure("Can't use custom function")
             st=False
         if st:
@@ -226,6 +230,9 @@ class LiveTest(minitest.simpleTestUnit):
         self.addSuccess()
 
         self.currentTest("Loading Patch")
+
+        # print(GrandMA2.Actions)
+
         Acts=GrandMA2.Actions(Inter)
         self.addSuccess()
         #Act.prettyprint()

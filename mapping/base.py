@@ -226,7 +226,7 @@ class BasicActions(object):
         pass
 
     def __repr__(self):
-        return(self.sections)
+        return(str(self.sections))
 
     def prettyprint(self):
         for sect in self.sections:
@@ -330,12 +330,15 @@ class BasicMidiTrigger(object):
             # Lidl parsing incomming;
             t_parse=val.split("(")
             funct,params=t_parse[0],t_parse[1][:-1].split(',')
-            print(funct,params,self.interface.functionlist)
-            self.funct=self.interface.functionlist[funct](val,**params)
+            self.params=params
+            self.funct=self.parent.interface.functionlist[funct]
         except KeyError:
             print("[ERROR] Key {} not in list of functions".format(funct))
         # except:
         #     print("[ERROR] Can't evaluate function {}".format(val))
+
+    def execspecialfn(self):
+        return self.funct(self.params)
 
     def addstate(self,valtrue,valfalse):
         "The message will now send two state values intead"
