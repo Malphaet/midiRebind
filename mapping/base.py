@@ -222,7 +222,6 @@ class BasicActions(object):
             return nmin+(key-startkey)*pad
         else:
             if "-" in note: # Bind ALL notes to a single one, this is not doable this way
-                print(startkey,stopkey)
                 print("[WARNING] As of now it is not possible to bind one note to severall output notes, ({})->({})".format(note,key))
             return int(note.split("-")[0])
         return int(note)
@@ -272,9 +271,11 @@ class BasicMidiTrigger(object):
         self.value=value
         self.intensity=intensity
         self.interface=interface
+        self.interface_short_name=self.interface.name.split(":")[1][:12]
         self.valuefn=None
         self.binded=binded
         self.parent=parent
+        self.funct=None
 
         message=RecognisedMessagesTypes[messagetype]
         attributes={}
@@ -295,9 +296,6 @@ class BasicMidiTrigger(object):
 
     def changevalue(self,val):
         "Change the value (depending on the toggles etc...)"
-        #for cond in self.conditions:
-        #    if not cond(val):
-        #        return #A condition isn't met, returning
         change=self.intensity
         if self.valuefn:
             change=self.valuefn(val)
@@ -320,6 +318,7 @@ class BasicMidiTrigger(object):
         if self.toggle!=None:
             self.toggle=not self.toggle
         self.interface.send(self.message)
+        self.execspecialfn()
 
     def addspecial(self,typ,val): #TODO : Offer a toggle between two differents messages, maybe a /switch
         """Affect a specific action (usually a condition) to the execution of the event"""
@@ -353,8 +352,15 @@ class BasicMidiTrigger(object):
         #     print("[ERROR] Can't evaluate function {}".format(val))
 
     def execspecialfn(self):
-        # self.funct(self.params)
-        return self.funct(self.params)
+        "Executing a special function"
+        try:
+            vprint("[Sent:({}.)]: {} - Parameters : {}".format(self.interface_short_name,self.funct,self.params))
+            # self.funct(self.params)
+            if self.funct:
+                return self.funct(self.params)
+        except Exception as e:
+            print("[ERROR] The function for trigger {} stopped in an unexpected way".format(self))
+            print("[ERROR] {}".format(e))
 
     def addstate(self,valtrue,valfalse):
         "The message will now send two state values intead"
@@ -371,7 +377,8 @@ class EmptyTrigger(BasicMidiTrigger):
         self.output=None
         self.messagetype=None
         self.intensity=None
-        self.interface=None
+        self.interface=EmptyInterface()
+        self.interface_short_name="None"
         self.value=None
         self.valuefn=None
         self.binded=None
@@ -379,10 +386,11 @@ class EmptyTrigger(BasicMidiTrigger):
         self.toggle=None
         self.valuetype={}
         self.message=None
+        self.funct=None
 
     def __call__(self, val):
         "Send the message"
-        pass
+        self.execspecialfn()
 
     def changevalue(self,val):
         "It's empty, can't change valu"
@@ -390,7 +398,7 @@ class EmptyTrigger(BasicMidiTrigger):
 
     def sendmessage(self):
         "It's empty, can't send any message"
-        pass
+        self.execspecialfn()
 
 
     def addvalfn(self,nf):
@@ -399,4 +407,14 @@ class EmptyTrigger(BasicMidiTrigger):
 
     def addstate(self):
         "No state to add"
+        pass
+
+class EmptyInterface(object):
+    "An empty interface, to send empty messages"
+
+    def __init__(self):
+        self.name="Empty interface"
+        pass
+
+    def send(self,*param):
         pass
