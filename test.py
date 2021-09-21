@@ -18,7 +18,7 @@ class mappingTest(minitest.simpleTestUnit):
     """Testing the parsing/mapping"""
     def __init__(self):
         super(mappingTest, self).__init__("parsing/mapping")
-
+        self.verbose=True
     def _testParsing(self):
         self.currentTest("Loading default mappings")
         from mapping import GrandMA2
@@ -161,7 +161,7 @@ class mappingTest(minitest.simpleTestUnit):
             acts=self.act.findAction("custom",77,"2")
             # print(acts)
             for act in acts:
-                # print(act,act.funct)
+                #print(act,act.funct)
                 if not act.funct or not act.execspecialfn():
                     st=False
                     self.addFailure("No custom function defined")

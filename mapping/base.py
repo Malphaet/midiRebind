@@ -136,8 +136,15 @@ class BasicActions(object):
                         for trigger in (keys[int(i)]): # TODO : If the key doesn't exist, throw a # WARNING: instead of an error
                             trigger.addspecial(atype,conf[key])
                 else:
-                    for trigger in keys[trunc(float(note))]:
-                        trigger.addspecial(atype,conf[key])
+                    # Special function can be executed with no triggers associated
+                    try:
+                        for trigger in keys[trunc(float(note))]:
+                            trigger.addspecial(atype,conf[key])
+                    except KeyError:
+                        trigg=EmptyTrigger(self)
+                        trigg.addspecial(atype,conf[key])
+                        keys[trunc(float(note))]=[trigg]
+                        # print("No el key")
             elif "-" in key: # There is a range of values to map
                 nmin,nmax=key.split("-")
                 nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
@@ -338,6 +345,7 @@ class BasicMidiTrigger(object):
         #     print("[ERROR] Can't evaluate function {}".format(val))
 
     def execspecialfn(self):
+        # self.funct(self.params)
         return self.funct(self.params)
 
     def addstate(self,valtrue,valfalse):
@@ -348,3 +356,39 @@ class BasicMidiTrigger(object):
 
     def __repr__(self):
         return "<MT>({}/{}/{})@{}".format(self.messagetype,self.value,self.intensity,self.output)
+
+class EmptyTrigger(BasicMidiTrigger):
+    """An empty trigger, used mainly for function only triggers"""
+    def __init__(self,parent):
+        self.output=None
+        self.messagetype=None
+        self.intensity=None
+        self.interface=None
+        self.value=None
+        self.valuefn=None
+        self.binded=None
+        self.parent=parent
+        self.toggle=None
+        self.valuetype={}
+        self.message=None
+
+    def __call__(self, val):
+        "Send the message"
+        pass
+
+    def changevalue(self,val):
+        "It's empty, can't change valu"
+        pass
+
+    def sendmessage(self):
+        "It's empty, can't send any message"
+        pass
+
+
+    def addvalfn(self,nf):
+        "There's no value to ajust"
+        pass
+
+    def addstate(self):
+        "No state to add"
+        pass
