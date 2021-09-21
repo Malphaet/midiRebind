@@ -45,8 +45,8 @@ if __name__ == '__main__':
                  print("[Unexpected error@midibind.py] {}".format(sys.exc_info()))
     except ImportError as e:
         print("[Error] There was an error loading module {} ({})".format(interpath,e))
-    except KeyError:
-        print("[Error] Patch {} doesn't exist".format(path))
+    except KeyError as e:
+        print("[Error] There was an error while loading patch {} ({})".format(path,e))
     except KeyboardInterrupt:
         print("[Keyboard Interrupt] : Exiting...")
         del Inter

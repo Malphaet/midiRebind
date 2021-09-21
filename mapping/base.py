@@ -123,40 +123,43 @@ class BasicActions(object):
                     else:
                         self.sections[elt]={"*":self.makeTriggers(self.config[elt])}
 
+    def makeOneTrigger(self,keys,key_i,special,actions_t,startkey,stopkey):
+        "Update or make one trigger and add it to the dict of triggers"
+        if key_i not in keys: # Must now initialise
+            # print(type(key_i))
+            keys[key_i]=[]
+            if special:
+                trigg=EmptyTrigger(self)
+                trigg.addspecial(special,actions_t)
+                keys[key_i]+=[trigg]
+            else:
+                keys[key_i]+=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey)
+
+        for trigger in keys[key_i]:
+            if special:
+                trigger.addspecial(special,actions_t)
+            else:
+                keys[key_i]=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey) #Do a different trigger for every ; and link to a different interface for every n/
+
     def makeTriggers(self,conf):
         "Take a section of a config and put all triggers in a dict"
         keys={}
+        # TODO : THIS WHOLE SECTION IS A BLODDY MESS
         for key in conf: # Reading every mapping and linking it to the appropriate Trigger
-            if "/" in key: # There is a condition to an action
-                note,atype=key.split("/")
-                if "-" in note:
-                    nmin,nmax=note.split("-")
-                    nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
-                    for i in range(nmin,nmax+1): # TODO : If there are exactly as many actions as the keys inside the dict, add one action per key
-                        for trigger in (keys[int(i)]): # TODO : If the key doesn't exist, throw a # WARNING: instead of an error
-                            trigger.addspecial(atype,conf[key])
-                else:
-                    # Special function can be executed with no triggers associated
-                    try:
-                        for trigger in keys[trunc(float(note))]:
-                            trigger.addspecial(atype,conf[key])
-                    except KeyError:
-                        trigg=EmptyTrigger(self)
-                        trigg.addspecial(atype,conf[key])
-                        keys[trunc(float(note))]=[trigg]
-                        # print("No el key")
-            elif "-" in key: # There is a range of values to map
-                nmin,nmax=key.split("-")
-                nmin,nmax=trunc(float(nmin)),trunc(float(nmax))
-                for i in range(nmin,nmax+1):
-                    if i not in keys:
-                        keys[i]=[]
-                    keys[i]+=self.makeAllKeys(i,conf[key],startkey=nmin,stopkey=nmax) #Do a different trigger for every ; and link to a different interface for every n/
-            else: # Nothing fancy
-                key_i=trunc(float(key))
-                if key_i not in keys:
-                    keys[key_i]=[]
-                keys[key_i]+=self.makeAllKeys(key_i,conf[key],key_i,key_i)
+            if "/" in key:
+                base,special=key.split("/")
+            else:
+                base,special=key,""
+
+            if "-" in base:
+                key_start,key_stop=base.split("-")
+                key_start,key_stop=trunc(float(key_start)),trunc(float(key_stop))
+                for key_i in range(key_start,key_stop+1):
+                    self.makeOneTrigger(keys,key_i,special,conf[key],startkey=key_start,stopkey=key_stop)
+            else:
+                key_i=trunc(float(base))
+                self.makeOneTrigger(keys,key_i,special,conf[key],startkey=key_i,stopkey=key_i)
+
         return keys
 
     def makeAllKeys(self,key,action,startkey=0,stopkey=0):
@@ -166,7 +169,7 @@ class BasicActions(object):
         if ';' in action:
             allactions=[]
             for a in action.split(";"):
-                allactions+=self.makeAllKeys(key,a,startkey,stopkey)
+                allactions+=self.makeAllKeys(key,a,startkey=startkey,stopkey=stopkey)
             return allactions
         binded=False
         try:
@@ -197,11 +200,11 @@ class BasicActions(object):
         except (KeyError):
             print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.outputs.keys()]))
             return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
-        except ValueError:
-            import sys
-            print(sys.exc_info())
-            print("[WARNING] Incorrect values given to the midi message {}".format(action))
-            return []
+        # except ValueError:
+        #     import sys
+        #     print("[WARNING] Incorrect values given to the midi message {} {} {}:{}".format(action,key,startkey,stopkey))
+        #     print("[Exec Info]", sys.exc_info())
+        #     return []
 
     def findNote(self,key,startkey,stopkey,note):
         "Find the note to bind to the received one"
@@ -217,6 +220,11 @@ class BasicActions(object):
             else:
                 pad=1
             return nmin+(key-startkey)*pad
+        else:
+            if "-" in note: # Bind ALL notes to a single one, this is not doable this way
+                print(startkey,stopkey)
+                print("[WARNING] As of now it is not possible to bind one note to severall output notes, ({})->({})".format(note,key))
+            return int(note.split("-")[0])
         return int(note)
 
     def findAction(self,command,number,page):
