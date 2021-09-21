@@ -36,3 +36,5 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * Add Fade (in ms) from one value to another
 * Have a way to know last value for the note/cc (the last one sent/received)
 * Make toggles a function modifying a variable/state and sending result
+* Allow for a multi-in interfaces
+* Allow for a null interface out
