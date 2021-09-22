@@ -89,8 +89,6 @@ class BasicActions(object):
         self.config=midiInterface.config
         self.interface=midiInterface
         self.sections={}
-        # self.varlist={}
-        # self.functionlist={}
 
         # Very cheesy way to figure out notes from control, I should find a better way, but I can't be bothered to
         self.dec10=[str(x) for x in range(10)]
@@ -196,7 +194,7 @@ class BasicActions(object):
         try:
             interF=self.interface.interfaceOut(int(interfaceout))
             noteN=self.findNote(key,startkey,stopkey,note)
-            return [BasicMidiTrigger(interF,self,midiaction,noteN,intensity,binded)]
+            return [BasicMidiTrigger(interF,self,midiaction,noteN,intensity,binded,key)]
         except (KeyError):
             print("[WARNING] Can't find interface {} for note {} action {}, legal interfaces are {}".format(interfaceout,note,action,[i for i in self.interface.outputs.keys()]))
             return [] #This choice is not necessary the best, but I figure it's easier that forcing the config to be perfect
@@ -264,7 +262,7 @@ class MatchError(Exception):
 
 class BasicMidiTrigger(object):
     """A midi trigger, will do a specific action when called"""
-    def __init__(self,interface,parent,messagetype,value,intensity,binded):
+    def __init__(self,interface,parent,messagetype,value,intensity,binded,received_note):
         #self.vprint=vprint
         self.output=interface
         self.messagetype=messagetype
@@ -276,7 +274,7 @@ class BasicMidiTrigger(object):
         self.binded=binded
         self.parent=parent
         self.funct=None
-
+        self.received_note=received_note
         message=RecognisedMessagesTypes[messagetype]
         attributes={}
         self.toggle=None
@@ -292,7 +290,7 @@ class BasicMidiTrigger(object):
     def __call__(self,val):
         """Change the value (if necessary) and send the message"""
         self.changevalue(val)
-        return self.sendmessage()
+        return self.sendmessage(val)
 
     def changevalue(self,val):
         "Change the value (depending on the toggles etc...)"
@@ -313,12 +311,12 @@ class BasicMidiTrigger(object):
             self.valuetype[list(self.valuetype)[0]]=change
             self.message=self.message.copy(**self.valuetype)
 
-    def sendmessage(self):
+    def sendmessage(self,val):
         vprint("[Sent:({}.)]: {}".format(self.interface.name.split(":")[1][:12],self.message))
         if self.toggle!=None:
             self.toggle=not self.toggle
         self.interface.send(self.message)
-        self.execspecialfn()
+        self.execspecialfn(val)
 
     def addspecial(self,typ,val): #TODO : Offer a toggle between two differents messages, maybe a /switch
         """Affect a specific action (usually a condition) to the execution of the event"""
@@ -351,13 +349,13 @@ class BasicMidiTrigger(object):
         # except:
         #     print("[ERROR] Can't evaluate function {}".format(val))
 
-    def execspecialfn(self):
+    def execspecialfn(self,val):
         "Executing a special function"
         try:
             vprint("[Sent:({}.)]: {} - Parameters : {}".format(self.interface_short_name,self.funct,self.params))
             # self.funct(self.params)
             if self.funct:
-                return self.funct(self.params)
+                return self.funct(val,self.received_note,*self.params)
         except Exception as e:
             print("[ERROR] The function for trigger {} stopped in an unexpected way".format(self))
             print("[ERROR] {}".format(e))
@@ -390,15 +388,15 @@ class EmptyTrigger(BasicMidiTrigger):
 
     def __call__(self, val):
         "Send the message"
-        self.execspecialfn()
+        self.execspecialfn(val)
 
     def changevalue(self,val):
         "It's empty, can't change valu"
         pass
 
-    def sendmessage(self):
+    def sendmessage(self,val):
         "It's empty, can't send any message"
-        self.execspecialfn()
+        self.execspecialfn(val)
 
 
     def addvalfn(self,nf):

@@ -9,15 +9,16 @@ import pyautogui
 from mapping.midi import MessageParse
 from mapping.midi import Actions
 
-def presskey(val,*params):
+BASE_NOTE=56
+
+def presskey(val,note,*params):
     "Press the given keys"
-    # print("Pressing key {}, params {}".format(val,params))
-    try:
-        print(params)
-        pyautogui.write(params)
-    except Exception as e:
-        print(e)
-        pyautogui.write("CC")
+    print(val,note,params)
+
+def switchinput(val,note,*params):
+    "Switch to the desired layer"
+    topress=BASE_NOTE-note+1
+    pyautogui.press("i",str(topress))
 
 # MidiInterface(config)
 class MidiInterface(BasicMidiInterface):
@@ -26,3 +27,4 @@ class MidiInterface(BasicMidiInterface):
     def __init__(self,configfile):
         super(MidiInterface,self).__init__(configfile)
         self.functionlist["presskey"]=presskey
+        self.functionlist["switchinput"]=switchinput
