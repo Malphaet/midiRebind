@@ -127,17 +127,17 @@ class BasicActions(object):
             # print(type(key_i))
             keys[key_i]=[]
             if special:
-                trigg=EmptyTrigger(self)
+                trigg=EmptyTrigger(self,key_i)
                 trigg.addspecial(special,actions_t)
                 keys[key_i]+=[trigg]
             else:
                 keys[key_i]+=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey)
-
-        for trigger in keys[key_i]:
-            if special:
-                trigger.addspecial(special,actions_t)
-            else:
-                keys[key_i]=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey) #Do a different trigger for every ; and link to a different interface for every n/
+        else:
+            for trigger in keys[key_i]:
+                if special:
+                    trigger.addspecial(special,actions_t)
+                else:
+                    keys[key_i]=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey) #Do a different trigger for every ; and link to a different interface for every n/
 
     def makeTriggers(self,conf):
         "Take a section of a config and put all triggers in a dict"
@@ -274,6 +274,7 @@ class BasicMidiTrigger(object):
         self.binded=binded
         self.parent=parent
         self.funct=None
+        self.params=None
         self.received_note=received_note
         message=RecognisedMessagesTypes[messagetype]
         attributes={}
@@ -352,10 +353,11 @@ class BasicMidiTrigger(object):
     def execspecialfn(self,val):
         "Executing a special function"
         try:
-            vprint("[Sent:({}.)]: {} - Parameters : {}".format(self.interface_short_name,self.funct,self.params))
+            vprint("[Sent:({}.)]: {} - Note {} / Parameters : {}".format(self.interface_short_name,self.funct,self.received_note,self.params))
             # self.funct(self.params)
             if self.funct:
                 return self.funct(val,self.received_note,*self.params)
+            print("Done")
         except Exception as e:
             print("[ERROR] The function for trigger {} stopped in an unexpected way".format(self))
             print("[ERROR] {}".format(e))
@@ -371,7 +373,7 @@ class BasicMidiTrigger(object):
 
 class EmptyTrigger(BasicMidiTrigger):
     """An empty trigger, used mainly for function only triggers"""
-    def __init__(self,parent):
+    def __init__(self,parent,note):
         self.output=None
         self.messagetype=None
         self.intensity=None
@@ -384,6 +386,9 @@ class EmptyTrigger(BasicMidiTrigger):
         self.toggle=None
         self.valuetype={}
         self.message=None
+        self.funct=None
+        self.received_note=note
+        self.params=None
         self.funct=None
 
     def __call__(self, val):

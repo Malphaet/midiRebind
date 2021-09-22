@@ -13,13 +13,20 @@ BASE_NOTE=56
 
 def presskey(val,note,*params):
     "Press the given keys"
-    print(val,note,params)
+    pass#print(val,note,params)
 
 def switchinput(val,note,*params):
     "Switch to the desired layer"
-    topress=BASE_NOTE-note+1
-    pyautogui.press("i",str(topress))
+    topress=note-BASE_NOTE+1
+    print(val,note)
+    pyautogui.hotkey("i",str(topress))
 
+def takeall():
+    "TA"
+    pass
+
+def mastermemory():
+    "M1"
 # MidiInterface(config)
 class MidiInterface(BasicMidiInterface):
     "Adding a couple of custom functions"

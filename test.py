@@ -162,7 +162,7 @@ class mappingTest(minitest.simpleTestUnit):
             # print(acts)
             for act in acts:
                 #print(act,act.funct)
-                if not act.funct or not act.execspecialfn():
+                if not act.funct or not act.execspecialfn(55):
                     st=False
                     self.addFailure("No custom function defined")
                     break
