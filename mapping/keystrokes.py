@@ -9,24 +9,27 @@ import pyautogui
 from mapping.midi import MessageParse
 from mapping.midi import Actions
 
-BASE_NOTE=56
+BASE_NOTE_INPUT=56
+BASE_NOTE_MASTERM=48
 
 def presskey(val,note,*params):
     "Press the given keys"
     pass#print(val,note,params)
 
 def switchinput(val,note,*params):
-    "Switch to the desired layer"
-    topress=note-BASE_NOTE+1
-    print(val,note)
+    "Switch to the desired layer i1"
+    topress=note-BASE_NOTE_INPUT+1
     pyautogui.hotkey("i",str(topress))
 
-def takeall():
-    "TA"
-    pass
+def takeall(val,note,*params):
+    "Take all TA"
+    pyautogui.hotkey("t","a")
 
-def mastermemory():
-    "M1"
+def mastermemory(val,note,*params):
+    "Switch to the desired master memory M1"
+    topress=note-BASE_NOTE_MASTERM+1
+    pyautogui.hotkey("m",str(topress))
+
 # MidiInterface(config)
 class MidiInterface(BasicMidiInterface):
     "Adding a couple of custom functions"
@@ -35,3 +38,5 @@ class MidiInterface(BasicMidiInterface):
         super(MidiInterface,self).__init__(configfile)
         self.functionlist["presskey"]=presskey
         self.functionlist["switchinput"]=switchinput
+        self.functionlist["mastermemory"]=mastermemory
+        self.functionlist["takeall"]=takeall

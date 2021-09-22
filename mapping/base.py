@@ -133,11 +133,11 @@ class BasicActions(object):
             else:
                 keys[key_i]+=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey)
         else:
-            for trigger in keys[key_i]:
-                if special:
-                    trigger.addspecial(special,actions_t)
-                else:
-                    keys[key_i]=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey) #Do a different trigger for every ; and link to a different interface for every n/
+            if special in ["val","toggle"]: # Only do the function once # TODO: ADD FUNCTION WITH MESSAGE
+                for trigger in keys[key_i]:
+                    trigger.addspecial(special,actions_t) # Should only do this for /toggle and /val
+            else:
+                keys[key_i]+=self.makeAllKeys(key_i,actions_t,startkey=startkey,stopkey=stopkey) #Do a different trigger for every ; and link to a different interface for every n/
 
     def makeTriggers(self,conf):
         "Take a section of a config and put all triggers in a dict"
@@ -353,11 +353,11 @@ class BasicMidiTrigger(object):
     def execspecialfn(self,val):
         "Executing a special function"
         try:
-            vprint("[Sent:({}.)]: {} - Note {} / Parameters : {}".format(self.interface_short_name,self.funct,self.received_note,self.params))
+            vprint("[Sent:({}.)]: Note {} / Parameters : {}".format(self.interface_short_name,self.received_note,self.params))
             # self.funct(self.params)
             if self.funct:
+                vprint("[Sending function {} - Note {} / Parameters : {}".format(self.funct.__name__,self.received_note,self.params))
                 return self.funct(val,self.received_note,*self.params)
-            print("Done")
         except Exception as e:
             print("[ERROR] The function for trigger {} stopped in an unexpected way".format(self))
             print("[ERROR] {}".format(e))
@@ -393,6 +393,7 @@ class EmptyTrigger(BasicMidiTrigger):
 
     def __call__(self, val):
         "Send the message"
+        vprint("[Sending function (call) {} - Note {} / Parameters : {}".format(self.funct.__name__,self.received_note,self.params))
         self.execspecialfn(val)
 
     def changevalue(self,val):
@@ -401,6 +402,7 @@ class EmptyTrigger(BasicMidiTrigger):
 
     def sendmessage(self,val):
         "It's empty, can't send any message"
+        vprint("[Sending function (send) {} - Note {} / Parameters : {}".format(self.funct,self.received_note,self.params))
         self.execspecialfn(val)
 
 

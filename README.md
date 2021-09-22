@@ -38,3 +38,5 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * Make toggles a function modifying a variable/state and sending result
 * Allow for a multi-in interfaces
 * Allow for a null interface out
+* URGENT : /funct with an existing trigger might not work, should be with an empty trigger anyway.
+* Add asynchroneous mode ?
