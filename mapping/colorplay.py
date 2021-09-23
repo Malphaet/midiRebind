@@ -69,7 +69,7 @@ def makeword(table):
             final[i]+=linef
     return final
 
-BIGWORD=makeword(WORD2)
+BIGWORD=makeword(WORD)
 
 def _onload(self):
     "Send a reset colors"
