@@ -49,10 +49,12 @@ if __name__ == '__main__':
         print("[Error] There was an error while loading patch {} ({})".format(path,e))
     except KeyboardInterrupt:
         print("[Keyboard Interrupt] : Exiting...")
-        del Inter
+        #del Inter
         sys.exit()
-    except OSError:
+    except OSError as e:
         print('[Error] The patch "patch/{}.ini" is ill-formed or non-existent'.format(args.patch))
-    except TypeError:
-        print("[Error] Can't iterate ofver an emplty list, check the list of inputs for an available input")
+        print(e)
+    except TypeError as e:
+        print("[Error] Can't iterate over an emplty list, check the list of inputs for an available input")
+        print(e)
     # except KeyError

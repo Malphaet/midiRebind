@@ -225,7 +225,8 @@ class BasicActions(object):
         return int(note)
 
     def findAction(self,command,number,page):
-        "Find the correct Action when a command is received"
+        """"Find the correct Action when a command is received
+        Should be : (command/actiontype,note,page)"""
         try:
             return self.sections[command][str(page)][int(number)]
         except:
@@ -357,7 +358,7 @@ class BasicMidiTrigger(object):
             # self.funct(self.params)
             if self.funct:
                 vprint("[Sending function {} - Note {} / Parameters : {}".format(self.funct.__name__,self.received_note,self.params))
-                return self.funct(val,self.received_note,*self.params)
+                return self.funct(self,val,self.received_note,*self.params)
         except Exception as e:
             print("[ERROR] The function for trigger {} stopped in an unexpected way".format(self))
             print("[ERROR] {}".format(e))

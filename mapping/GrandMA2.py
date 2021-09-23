@@ -5,8 +5,8 @@ import re,configparser
 commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",10:"go_off"}
 # Doc says 11 is go_off, test says otherwise
 
-def testfunction(*params):
-    print("testfunction used in GMA",params)
+def testfunction(trigger,*params):
+    print("testfunction used in GMA",trigger,params)
     return 1 # Not mandatory or even codex, just for testing purposes
 
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
