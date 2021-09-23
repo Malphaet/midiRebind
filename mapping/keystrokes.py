@@ -50,7 +50,14 @@ B=[[1,1,1,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],[1,1,1,0]]
 C=[[1,1,1,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]]
 D=[[1,1,1,0],[1,0,0,0],[1,0,0,0],[1,1,1,0],[1,0,0,0],[1,0,0,0],[1,1,1,0]]
 
+E=[[1,0,1],[1,1,1]]+[[1,0,1]]*3
+F=[[0,1,0],[1,0,1],[1,1,1]]+[[1,0,1]]*2
+G=[[1,0,1]]*2+[[0,1,0]]+[[1,0,1]]*2
+SPACE3=[[0,0]]*5
+SPACE7=[[0,0,0]]*7
+
 WORD=[A,B,C,D]
+WORD2=[E,F,G,SPACE3]
 
 def makeword(table):
     final=[[] for i in range(8)]
@@ -62,7 +69,7 @@ def makeword(table):
             final[i]+=linef
     return final
 
-BIGWORD=makeword(WORD)
+BIGWORD=makeword(WORD2)
 
 def _onload(self):
     "Send a reset colors"
@@ -76,24 +83,77 @@ def _onload(self):
             for j in range(7):
                 VARS.light(i,j,letter[j][i])
 
-    def printmatrix(matrix,decx=0,decy=0):
-        maxi,maxj=len(matrix[0]),len(matrix)
+
+    def normalize(i,dec,width,loop):
+        new=i-dec
+        # if i==0:
+        #     print(i,dec,new,new%(width+0))
+        if new>width:
+            if not loop:
+                return -1
+            else:
+                return new%(width+0)
+        elif new<0:
+            if not loop:
+                return -1
+            else:
+                while new<0: # Pretty shit implementation
+                    new+=width
+                return new
+        return new
+
+
+    def makematrix(matrix,decx=0,decy=0,loop=False):
+        "Shift a matrix and return the 8x8 to print"
+        width,height=len(matrix[0]),len(matrix)
+        toprint=[[0]*8 for i in range(8)]
+        # print(width)
+
         for i in range(8):
             for j in range(8):
-                try:
-                    VARS.light(i,j,BIGWORD[j-decy][i+decx])
-                except IndexError:
-                    pass
+                new_x=normalize(i,decx,width,loop)
+                #new_y=normalize(j,decy,height,loop)
+                new_y=j
+                if new_x<0 or new_y<0:
+                    color=0
+                else:
+                    try:
+                        color=matrix[new_y][new_x]
+                    except IndexError:
+                        color=0
+                toprint[j][i]=color
+        return toprint
+
+    def printmatrix(newmatrix,oldmatrix=None):
+        "Print and 8x8 matrix"
+        for i in range(8):
+            for j in range(8):
+                if oldmatrix:
+                    if oldmatrix[j][i]!=newmatrix[j][i]:
+                        VARS.light(i,j,newmatrix[j][i])
+                else:
+                    VARS.light(i,j,newmatrix[j][i])
             time.sleep(0.01)
 
+    def clearmatrix(matrix,decx,decy,loop=False):
+        pass
 
-    for j in range(20):
-        for i in range(64):
-            VARS.lightnote(i,0)
-        time.sleep(0.05)
+    newmat=None
+    for i in range(200):
+        oldmat,newmat=newmat,makematrix(BIGWORD,-i,0,True)
+        printmatrix(newmat,oldmat)
+        time.sleep(0.04)
 
-        printmatrix(BIGWORD,j,0)
-        time.sleep(0.01)
+    # for j in range(0,10):
+    #      time.sleep(0.3)
+    #      printmatrix(BIGWORD)
+    # #     print("E")
+    #     for i in range(64):
+    #         VARS.lightnote(i,0)
+    #     time.sleep(0.2)
+    #
+    #     printmatrix(BIGWORD,0,0)
+    #     time.sleep(0.01)
 
     # while 1:
     #     for k in range(4):
