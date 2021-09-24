@@ -1,3 +1,6 @@
 [submodule "minitest"]
 	path = minitest
 	url = https://github.com/Malphaet/minitest.git
+[submodule "panaremote"]
+	path = panaremote
+	url = git@github.com:Malphaet/panaremote.git
