@@ -183,6 +183,7 @@ def switchmastermemory(trigger,val,note,*params):
     vars.addChange(*vars.selected_pulse,0,reset=True) # Reset this to base
     vars.selected_pulse=(i,1)
     vars.addChange(*vars.lastpress,_SELECTED,reset=True) # Add a selection
+    vars.addChange(*vars.live_pulse,_LIVE,reset=False)
 
     vars.applyChanges()
     pyautogui.hotkey("m",str(i))
