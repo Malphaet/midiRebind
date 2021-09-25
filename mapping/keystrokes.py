@@ -3,8 +3,7 @@
 #################################################
 # HARDCODED DEFINITIONS
 ###
-INPUTS=  [0,0,1,0,0,0,1,0]
-MEMORIES=[1,1,1,1,1,0,1,1]
+
 _LIST_VPS=["192.168.0.8"]
 __TESTING=True
 
@@ -37,8 +36,26 @@ class pyautonope(object):
 
     def __getattribute__(self,*args,**kwargs):
         return self
+
+class fakeRemote(pyautonope):
+    def __init__(self):
+        self.st_shutter="Off"
+        self.st_osd="Off"
+        self.st_input="SDI"
+
+    def __getattribute__(self,*args,**kwargs):
+        return fakeRemote()
+
+    def shutterOn(self):
+        self.st_shutter='On'
+
+    def shutterOff(self):
+        self.st_shutter='Off'
+
 if __TESTING:
     pyautogui=pyautonope()
+    #import pyautogui
+    panarequest=fakeRemote()
     def dprint(*args):
         print(*args)
 else:
@@ -53,9 +70,13 @@ else:
 
 _NOTIMER=pyautonope()
 
-_ACTIVE=0b1
-_SELECTED=0b10
-_LIVE=0b100
+_INACTIVE=0b1
+_ACTIVE=0b10
+_SELECTED=0b100
+_LIVE=0b1000
+
+INPUTS=  [_INACTIVE,_INACTIVE,_ACTIVE,_INACTIVE,_INACTIVE,_INACTIVE,_ACTIVE,_INACTIVE]
+MEMORIES=[_ACTIVE,_ACTIVE,_ACTIVE,_ACTIVE,_ACTIVE,_INACTIVE,_ACTIVE,_ACTIVE]
 
 #Modes
 _RESET=lambda a,b: a
@@ -64,11 +85,17 @@ _XOR=lambda a,b: a^b
 
 _TIMERTAKE=3.0
 _BASE_NOTE_INPUT=56
+_BASE_NOTE_CTRL=82
 
 _BASEVALUES=[
     INPUTS[:],
     MEMORIES[:],
-    [[0]*8]*6
+    [0]*8,
+    [0]*8,
+    [0]*8,
+    [0]*8,
+    [0]*8,
+    [0]*8
 ] # The duplicate is actually unimportant
 
 _COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
@@ -104,34 +131,54 @@ class demvars():
 
         self.list_vp=[]
         self.nb_vp=0
-        self.list_shutter_open=[]
+        # self.list_shutter_open=[]
 
         self.timertake=_NOTIMER
-        self.INPUTS=[i*_ACTIVE for i in INPUTS]
-        self.MEMORIES=[i*_ACTIVE for i in MEMORIES]
-        self.PAGE_COLORS=[
+        self._BASEVALUES=[[i for i in _BASEVALUES[j]] for j in range(8)]
+
+        self.INPUTS=self._BASEVALUES[0][:]     # INCREDIBLY UNSAFE
+        self.MEMORIES=self._BASEVALUES[1][:]   # INCREDIBLY UNSAFE
+        self.PAGE_VALUES=[
             [
                 self.INPUTS,
-                self.MEMORIES,
-                [[0]*8 for i in range(6)]
-            ]
+                self.MEMORIES
+            ] + [[0]*8 for i in range(6)]
         ]
 
-        self.VALUES=self.PAGE_COLORS[self.page] # Marked for deletion
+        self.ACTIVE_VALUES=self.PAGE_VALUES[self.page] # Marked for deletion
 
         self.takearmed=False
 
         #self.COLORPLUGS={0:_COLORS["yellow"],1:_COLORS["green"],2:_COLORS["blinking_green"],3:_COLORS["red"]}
+        #_INACTIVE _ACTIVE _SELECTED _LIVE
         self.PLUGCOLORS={
-            0:                          _COLORS["yellow"],
+            0:                          _COLORS["black"],
+            _INACTIVE:                  _COLORS["yellow"],
             _ACTIVE:                    _COLORS["green"],
-            _SELECTED:                  _COLORS["blinking_yellow"],
             _LIVE:                      _COLORS["red"],
+            _SELECTED:                  _COLORS["black"], # Selecting empty does nothing
+
+            _INACTIVE|_SELECTED:        _COLORS["blinking_yellow"],
             _ACTIVE|_SELECTED:          _COLORS["blinking_green"],
+            _LIVE|_SELECTED:            _COLORS["blinking_red"],
+
             _ACTIVE|_LIVE:              _COLORS["red"],
-            _SELECTED|_LIVE:            _COLORS["blinking_red"],
-            _ACTIVE|_SELECTED+_LIVE:    _COLORS["blinking_red"]
+            _INACTIVE|_LIVE:            _COLORS["red"], # Debatable
+
+            _ACTIVE|_INACTIVE:          _COLORS["green"],#Just active
+
+            _ACTIVE|_LIVE|_SELECTED:    _COLORS["blinking_red"],
+            _ACTIVE|_INACTIVE|_LIVE:    _COLORS["blinking_red"], #Just live active
+            _ACTIVE|_INACTIVE|_SELECTED:_COLORS["blinking_green"], #Just selected active
+            _INACTIVE|_LIVE|_SELECTED:    _COLORS["blinking_red"], # Very debatable
+
+            _ACTIVE|_LIVE|_INACTIVE|_SELECTED:_COLORS["blinking_red"] #Just live active selected
         }
+
+        for i in range(_ACTIVE|_LIVE|_INACTIVE|_SELECTED):
+            if i not in self.PLUGCOLORS:
+                print("[WARNING] : Case {:b} doesn't have a color by default".format(i))
+                self.PLUGCOLORS[i]=_COLORS["black"]
 
     # Should do it in a similar way, cant find it
     def addChange(self,i,j,value,reset=True): #mode=_OR
@@ -146,14 +193,14 @@ class demvars():
         for i,j,v,r in self.listchange:
             allch.add((i,j))
             if r:
-                self.VALUES[j][i]=_BASEVALUES[j][i]|v
+                self.ACTIVE_VALUES[j][i]=vars._BASEVALUES[j][i]|v    # There must be a way not to use this
                 #print("({}:{}) - Action:{} Base:{} Effect:{} Color:{}".format(i,j,v,_BASEVALUES[j][i],_BASEVALUES[j][i]|v,self.PLUGCOLORS[_BASEVALUES[j][i]|v]))
             else:
-                self.VALUES[j][i]|=v
+                self.ACTIVE_VALUES[j][i]|=v
         self.listchange=[]
 
         for i,j in allch: # I feel like I'm doing this twice
-            self.light(i,j,self.PLUGCOLORS[self.VALUES[j][i]])
+            self.light(i,j,self.PLUGCOLORS[self.ACTIVE_VALUES[j][i]])
 
         # self.
     def findit(self,col,row):
@@ -174,7 +221,7 @@ class demvars():
         for i,j in listN:
             pass
 
-    def updateinput(self,toupdate=range(8)): # Marked for deletion
+    def updateinput(self,toupdate=range(8)): # Keep it for now to separate MM from IN just in case
         "Update the inputline"
         for i in toupdate:
             self.light(i,0,self.PLUGCOLORS[self.INPUTS[i]])
@@ -184,9 +231,9 @@ class demvars():
         for i in toupdate:
             self.light(i,1,self.PLUGCOLORS[self.MEMORIES[i]])
 
-    def updatevp(self,toupdate=range(4)): #Marked for deletion
+    def updatevp(self,toupdate=range(8)): #Marked for deletion
         for i in toupdate:
-            self.light(i,7,self.PLUGCOLORS[self.VALUES[self.page][7][i]])
+            self.light(i,7,self.PLUGCOLORS[self.ACTIVE_VALUES[7][i]])
 #################################################
 # ON LOAD ACTIONS
 ###
@@ -197,20 +244,37 @@ def _onload(self):
     import time,sys
     vars.output=self.outputs[vars.interface_nb]
     #Load the remote control on some VPs
-    # loadVPs(_LIST_VPS)
+    loadVPs(_LIST_VPS)
 
     # Cleaning the arm
     vars.lightnote(vars.BASE_NOTE_ARM_TAKE,2)
 
     vars.updateinput()
     vars.updatemasterm()
+    vars.updatevp()
 
 #################################################
 # GLOBAL CONTROL
 ###
 
+def pressKeys(*keys):
+    def _action(trigger,i,j,val,*params):
+        pyautogui.hotkey(*keys)
+
+    return _action
+
 def controllpress(trigger,val,note,*params):
-    pass
+    i=note-_BASE_NOTE_CTRL
+
+    if i==0:
+        # pyautogui.hotkey("ctrl","fn","S")
+        return
+    else:
+        # try:
+        #     _ACTIONS[vars.page][i+8*j](trigger,i,j,val,*params)
+        #     # dprint("[Info] : Action received ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
+        # except TypeError as e:
+        dprint("[Error] : Unassigned action ({}) - Note {:2} ({:3})".format(i,note,val))
 
 def pagepress(trigger,val,note,*params):
     "Analise a press on the pagebuttons"
@@ -220,6 +284,7 @@ def pagepress(trigger,val,note,*params):
         # dprint("[Info] : Action received ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
     except TypeError as e:
         dprint("[Error] : Unassigned action ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
+        dprint(e)
 
 #################################################
 # PULSE CONTROL
@@ -286,54 +351,86 @@ def armtake(trigger,val,note,*params):
 def switchvp(trigger,i,j,val,*params):
     "Gestion of the VP actions"
     # 0-3 VP1 // 4-7 VP2
-    vp_i=i//4
-    vp_act=i%4
+    vp_i,vp_act=i//4,i%4
+    try:
+        if vp_act==0: # Opening
+            panaOpen([vars.list_vp[vp_i]])
+        elif vp_act==1: # Closing
+            panaShut([vars.list_vp[vp_i]])
+        elif vp_act==2: # Switch
+            panaToggle([vars.list_vp[vp_i]])
+        updateVPLights()
+        # print(vars.list_vp)
+    except Exception as e:
+        print(e)
 
 def loadVPs(listVP):
     "Load the VP list"
     try:
         vars.list_vp=[openVP(VP) for VP in listVP]
         vars.nb_vp=len(vars.list_vp)
-
-        vars.list_shutter_open=[VP.st_shutter=='On' for VP in vars.list_vp]
-        print(vars.list_shutter_open)
+        updateVPLights()
+        # list_shutter_open=[VP.st_shutter=='On' for VP in vars.list_vp]
+        # dprint(vars.list_vp,listVP,vars.nb_vp)
     except Exception as e:
         print("[panaRemote] An unexpected error occured while operating the videoprojector")
         print(e)
 
 
-def updateVPLights(listVP):
+def updateVPLights():
     "Update the status of VPs"
-    for i in range(vars.nb_vp):
-        VP=vars.list_vp[i]
-        VP.getStatus()
-        vars.list_shutter_open[i]=(VP.st_shutter=='On')
-
+    list_shutter_open=[]
     for vp_i in range(min(2,vars.nb_vp)):
-        status=vars.list_vp[i]
-        vars.VALUES[vars.page][7][0+4*vp_i]=vars.COLORS["green"]
-        vars.VALUES[vars.page][7][1+4*vp_i]=vars.COLORS["red"]
-        vars.VALUES[vars.page][7][2+4*vp_i]=vars.COLORS["orange"]
+        vars.list_vp[vp_i].getStatus()
+        status=vars.list_vp[vp_i].st_shutter=='On'
+        dprint("[Info] Shutter of VP({}@{}) is {}".format(vp_i,vars.list_vp[vp_i].ip,vars.list_vp[vp_i].st_shutter))
+        vars.ACTIVE_VALUES[7][0+4*vp_i]=_ACTIVE     # Might not be a good idea to do it this way
+        vars.ACTIVE_VALUES[7][1+4*vp_i]=_LIVE       # Might not be a good idea to do it this way
+        vars.ACTIVE_VALUES[7][2+4*vp_i]=_INACTIVE   # Might not be a good idea to do it this way
         if status:
-            vars.VALUES[vars.page][7][0+4*vp_i]|=_SELECTED
+            vars.ACTIVE_VALUES[7][0+4*vp_i]|=_SELECTED
         else:
-            vars.VALUES[vars.page][7][1+4*vp_i]|=_SELECTED
+            vars.ACTIVE_VALUES[7][1+4*vp_i]|=_SELECTED
+    # for i in range(vars.nb_vp):
+    #     VP=vars.list_vp[i]
+    #     VP.getStatus()
+    #     list_shutter_open.append(VP.st_shutter=='On')
+
+    # for vp_i in range(min(2,vars.nb_vp)):
+    #     status=list_shutter_open[i]
+    #     vars.ACTIVE_VALUES[7][0+4*vp_i]=_ACTIVE     # Might not be a good idea to do it this way
+    #     vars.ACTIVE_VALUES[7][1+4*vp_i]=_LIVE       # Might not be a good idea to do it this way
+    #     vars.ACTIVE_VALUES[7][2+4*vp_i]=_INACTIVE   # Might not be a good idea to do it this way
+    #     if status:
+    #         vars.ACTIVE_VALUES[7][0+4*vp_i]|=_SELECTED
+    #     else:
+    #         vars.ACTIVE_VALUES[7][1+4*vp_i]|=_SELECTED
 
 
 def openVP(adress):
     return panarequest.VP(adress)
 
-def panaShut(trigger,i,j,val,*params):
-    pass
+def panaShut(listVP):
+    if not vars.takearmed:
+        return
 
-def panaOpen(trigger,i,j,val,*params):
-    pass
+    for vp in listVP:
+        vp.shutterOn()
 
-def panaToggle(trigger,i,j,val,*params):
-    pass
+def panaOpen(listVP):
+    if not vars.takearmed:
+        return
+    for vp in listVP:
+        vp.shutterOn()
 
-def vpcontroll(trigger,val,note,*params):
-    "Receive a vp vpcontroll trigger"
+def panaToggle(listVP):
+    if not vars.takearmed:
+        return
+    for vp in listVP:
+        if vp.st_shutter=="On":
+            vp.shutterOff()
+        elif vp.st_shutter=="Off":
+            vp.shutterOn()
 
 dprint("[Info] Function loading done")
 
@@ -344,15 +441,22 @@ dprint("[Info] Function loading done")
 _ACTIONS=[
     [None]*64
 ]
+def _pos(i,j):
+    return i+8*j #_BASE_NOTE_INPUT+8-i-j*8
 
 for i in range(8):
     _ACTIONS[0][i+8*0]=switchinput
     _ACTIONS[0][i+8*1]=switchmastermemory
-    # _ACTIONS[0][i+8*7]=switchvp
+    _ACTIONS[0][i+8*7]=switchvp
+#
+# _ACTIONS[0][0+7*8]=panaOpen
+# _ACTIONS[0][1+7*8]=panaShut
+# _ACTIONS[0][2+7*8]=panaToggle
 
-_ACTIONS[0][0+7*8]=panaOpen
-_ACTIONS[0][1+7*8]=panaShut
-_ACTIONS[0][2+7*8]=panaToggle
+# _ACTIONS[0][_pos(1,5)]=pressKeys("up")
+# _ACTIONS[0][_pos(0,6)]=pressKeys("left")
+# _ACTIONS[0][_pos(1,6)]=pressKeys("down")
+# _ACTIONS[0][_pos(2,6)]=pressKeys("right")
 
 dprint("[Info] Action loading done")
 

@@ -41,3 +41,4 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * URGENT : /funct with an existing trigger might not work, should be with an empty trigger anyway.
 * Add asynchroneous mode ?
 * URGENT : Crash when assigning to an existing trigger
+* TODO: Make a @armtake and @doublepress decorator
