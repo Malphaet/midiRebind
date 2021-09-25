@@ -55,6 +55,6 @@ if __name__ == '__main__':
         print('[Error] The patch "patch/{}.ini" is ill-formed or non-existent'.format(args.patch))
         print(e)
     except TypeError as e:
-        print("[Error] Can't iterate over an emplty list, check the list of inputs for an available input")
+        print("[Error] Can't iterate over an empty list, check the list of inputs for an available input")
         print(e)
     # except KeyError

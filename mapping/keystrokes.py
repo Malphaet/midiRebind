@@ -1,17 +1,28 @@
 #!/bin/python3
 
-# import pyautogui
+#################################################
+# HARDCODED DEFINITIONS
+###
+INPUTS=  [0,0,1,0,0,0,1,0]
+MEMORIES=[1,1,1,1,1,0,1,1]
+__TESTING=True
+
+#################################################
+# IMPORTS
+###
+
 from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
 import mido
 import re,configparser
-
+from panaremote import request as panarequest
 from mapping.midi import MessageParse
 from mapping.midi import Actions
 
 from threading import Timer
 
-__TESTING=True
-
+#################################################
+# GLOBAL UTILITIES
+###
 
 class pyautonope(object):
     def __init__(self):
@@ -27,11 +38,17 @@ class pyautonope(object):
         return self
 if __TESTING:
     pyautogui=pyautonope()
+    def dprint(*args):
+        print(*args)
 else:
     import pyautogui
+    def dprint(*args):
+        pass
 
-INPUTS=  [0,0,1,0,0,0,1,0]
-MEMORIES=[1,1,1,0,0,0,0,0]
+
+#################################################
+# BASE VARIABLE DEFINITIONS
+###
 
 _NOTIMER=pyautonope()
 
@@ -45,44 +62,69 @@ _OR=lambda a,b: a|b
 _XOR=lambda a,b: a^b
 
 _TIMERTAKE=3.0
+_BASE_NOTE_INPUT=56
 
 _BASEVALUES=[
     INPUTS[:],
     MEMORIES[:],
     [[0]*8]*6
-]
+] # The duplicate is actually unimportant
+
+_COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
+
+#################################################
+# UTILITIES
+###
+
+def noteToPos(note):
+    i,j=note%8,7-note//8
+    vars.lastpress=(i,j)
+    return i,j
+
+#################################################
+# GLOBAL VARIABLE OBJECT
+###
 class demvars():
     def __init__(self):
+        self.page=0
+
         self.interface_nb=1
         self.output=None
-        self.BASE_NOTE_INPUT=56
-        self.BASE_NOTE_MASTERM=48
-        self.BASE_NOTE_ARM_TAKE=89
+        self.BASE_NOTE_MASTERM=48   # Marked for deletion
+        self.BASE_NOTE_ARM_TAKE=89  # Marked for deletion
 
         self.listchange=[]
         self.lastpress=(None,None) #Does only account for the 8x8
         self.selected_pulse=(None,None)
         self.live_pulse=(None,None)
+        self.list_vp=[]
+        self.list_shutter_open=[]
 
         self.timertake=_NOTIMER
         self.INPUTS=[i*_ACTIVE for i in INPUTS]
         self.MEMORIES=[i*_ACTIVE for i in MEMORIES]
+        self.PAGE_COLORS=[
+            [
+                self.INPUTS,
+                self.MEMORIES,
+                [[0]*8 for i in range(6)]
+            ]
+        ]
 
-        self.VALUES=[self.INPUTS,self.MEMORIES,[[0]*8]*6]
+        self.VALUES=self.PAGE_COLORS[0] # Marked for deletion
 
         self.takearmed=False
 
-        self.COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
-        #self.COLORPLUGS={0:self.COLORS["yellow"],1:self.COLORS["green"],2:self.COLORS["blinking_green"],3:self.COLORS["red"]}
+        #self.COLORPLUGS={0:_COLORS["yellow"],1:_COLORS["green"],2:_COLORS["blinking_green"],3:_COLORS["red"]}
         self.PLUGCOLORS={
-            0:                          self.COLORS["yellow"],
-            _ACTIVE:                    self.COLORS["green"],
-            _SELECTED:                  self.COLORS["blinking_yellow"],
-            _LIVE:                      self.COLORS["red"],
-            _ACTIVE|_SELECTED:          self.COLORS["blinking_green"],
-            _ACTIVE|_LIVE:              self.COLORS["red"],
-            _SELECTED|_LIVE:            self.COLORS["blinking_red"],
-            _ACTIVE|_SELECTED+_LIVE:    self.COLORS["blinking_red"]
+            0:                          _COLORS["yellow"],
+            _ACTIVE:                    _COLORS["green"],
+            _SELECTED:                  _COLORS["blinking_yellow"],
+            _LIVE:                      _COLORS["red"],
+            _ACTIVE|_SELECTED:          _COLORS["blinking_green"],
+            _ACTIVE|_LIVE:              _COLORS["red"],
+            _SELECTED|_LIVE:            _COLORS["blinking_red"],
+            _ACTIVE|_SELECTED+_LIVE:    _COLORS["blinking_red"]
         }
 
     # Should do it in a similar way, cant find it
@@ -91,7 +133,6 @@ class demvars():
         if i==None or j==None:
             return
         self.listchange+=[[i,j,value,reset]]
-
 
     def applyChanges(self):
         "Apply all changes"
@@ -111,10 +152,10 @@ class demvars():
         # self.
     def findit(self,col,row):
         "All index start at zero"
-        return self.BASE_NOTE_INPUT+col-8*row
+        return _BASE_NOTE_INPUT+col-8*row
 
     def lightcolor(self,col,row,color):
-        self.light(col,row,val=self.COLORS[color])
+        self.light(col,row,val=_COLORS[color])
 
     def light(self,col,row,val=1):
         self.lightnote(self.findit(col,row),val)
@@ -122,36 +163,63 @@ class demvars():
     def lightnote(self,note,val=1):
         self.output.send(mido.Message("note_on",note=note,velocity=val))
 
-    def updateinput(self,toupdate=range(8)):
+    def updateRange(self,listNotes):
+        "Update a list of notes"
+        for i,j in listN:
+            pass
+
+    def updateinput(self,toupdate=range(8)): # Marked for deletion
         "Update the inputline"
         for i in toupdate:
             self.light(i,0,self.PLUGCOLORS[self.INPUTS[i]])
 
-    def updatemasterm(self,toupdate=range(8)):
+    def updatemasterm(self,toupdate=range(8)): # Marked for deletion
         "Update the selected master memory"
         for i in toupdate:
             self.light(i,1,self.PLUGCOLORS[self.MEMORIES[i]])
 
+#################################################
+# ON LOAD ACTIONS
+###
 vars=demvars()
 
 def _onload(self):
     "Send a reset colors"
     import time,sys
     vars.output=self.outputs[vars.interface_nb]
+    #Load the remote control on some VPs
+    # loadVPs(["192.168.0.8"])
 
-    #Cleaning the arm
+    # Cleaning the arm
     vars.lightnote(vars.BASE_NOTE_ARM_TAKE,2)
 
     vars.updateinput()
     vars.updatemasterm()
 
+#################################################
+# GLOBAL CONTROL
+###
 
-def switchinput(trigger,val,note,*params): #COULD DO WITH A CLASS AND .change(i,j,val)
+def controllpress(trigger,val,note,*params):
+    pass
+
+def pagepress(trigger,val,note,*params):
+    "Analise a press on the pagebuttons"
+    i,j=noteToPos(note)
+    try:
+        _ACTIONS[0][i+8*j](trigger,i,j,val,*params)
+    except TypeError as e:
+        dprint("[Error] : Unassigned action ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
+
+#################################################
+# PULSE CONTROL
+###
+
+def switchinput(trigger,i,j,val,*params): ## Marked for deletion
     "Switch to the desired layer i1"
 
     # These two lines could be better done
-    i=note-vars.BASE_NOTE_INPUT
-    vars.lastpress=(i,0)
+    vars.lastpress=(i,j)
 
     vars.addChange(*vars.selected_pulse,0,reset=True) # Reset this to base
     vars.selected_pulse=(i,0)
@@ -175,10 +243,9 @@ def takeall(trigger,val,note,*params):
 
     pyautogui.hotkey("t","a")
 
-def switchmastermemory(trigger,val,note,*params):
+def switchmastermemory(trigger,i,j,val,*params): # Marked for deletion
     "Switch to the desired master memory M1"
-    i=note-vars.BASE_NOTE_MASTERM
-    vars.lastpress=(i,1)
+    vars.lastpress=(i,j)
 
     vars.addChange(*vars.selected_pulse,0,reset=True) # Reset this to base
     vars.selected_pulse=(i,1)
@@ -186,7 +253,8 @@ def switchmastermemory(trigger,val,note,*params):
     vars.addChange(*vars.live_pulse,_LIVE,reset=False)
 
     vars.applyChanges()
-    pyautogui.hotkey("m",str(i))
+    pyautogui.hotkey("m",str(i+1))
+
 
 def unarmtake():
     "Unarm the take button"
@@ -203,6 +271,56 @@ def armtake(trigger,val,note,*params):
     vars.lightnote(vars.BASE_NOTE_ARM_TAKE,1) # First and only blinking value
     vars.timertake.start()
 
+
+
+#################################################
+# VIDEOPROJECTOR CONTROL
+###
+
+def loadVPs(listVP):
+    "Load the VP list"
+    try:
+        vars.list_vp=[openVP()]
+        vars.list_shutter_open=[i.st_shutter=='On' for i in vars.list_vp]
+        print(vars.list_shutter_open)
+    except Exception as e:
+        print("[panaRemote] An unexpected error occured while operating the videoprojector")
+        print(e)
+
+
+def openVP(adress):
+    return panarequest.VP('192.168.0.8')
+
+def panaShut():
+    pass
+
+def panaOpen():
+    pass
+
+def panaToggle():
+    pass
+
+def vpcontroll(trigger,val,note,*params):
+    "Receive a vp vpcontroll trigger"
+
+
+#################################################
+# ACTION ASSIGNEMENT
+#####
+
+_ACTIONS=[
+    [None]*64
+]
+
+for i in range(7):
+    _ACTIONS[0][i]=switchinput
+    _ACTIONS[0][i+8]=switchmastermemory
+
+
+####################################################
+#  INTERFACE DEFINITION
+#####
+
 # MidiInterface(config)
 class MidiInterface(BasicMidiInterface):
     "Adding a couple of custom functions"
@@ -210,7 +328,11 @@ class MidiInterface(BasicMidiInterface):
     def __init__(self,configfile):
         super(MidiInterface,self).__init__(configfile)
         _onload(self)
+        self.functionlist["pagepress"]=pagepress
+        self.functionlist["controllpress"]=controllpress
+
         self.functionlist["switchinput"]=switchinput
         self.functionlist["mastermemory"]=switchmastermemory
         self.functionlist["takeall"]=takeall
         self.functionlist["armtake"]=armtake
+        self.functionlist['vpcontroll']=vpcontroll
