@@ -5,6 +5,7 @@
 ###
 INPUTS=  [0,0,1,0,0,0,1,0]
 MEMORIES=[1,1,1,1,1,0,1,1]
+_LIST_VPS=["192.168.0.8"]
 __TESTING=True
 
 #################################################
@@ -72,6 +73,9 @@ _BASEVALUES=[
 
 _COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
 
+##
+dprint("[Info] Config loading done")
+
 #################################################
 # UTILITIES
 ###
@@ -97,7 +101,9 @@ class demvars():
         self.lastpress=(None,None) #Does only account for the 8x8
         self.selected_pulse=(None,None)
         self.live_pulse=(None,None)
+
         self.list_vp=[]
+        self.nb_vp=0
         self.list_shutter_open=[]
 
         self.timertake=_NOTIMER
@@ -111,7 +117,7 @@ class demvars():
             ]
         ]
 
-        self.VALUES=self.PAGE_COLORS[0] # Marked for deletion
+        self.VALUES=self.PAGE_COLORS[self.page] # Marked for deletion
 
         self.takearmed=False
 
@@ -178,6 +184,9 @@ class demvars():
         for i in toupdate:
             self.light(i,1,self.PLUGCOLORS[self.MEMORIES[i]])
 
+    def updatevp(self,toupdate=range(4)): #Marked for deletion
+        for i in toupdate:
+            self.light(i,7,self.PLUGCOLORS[self.VALUES[self.page][7][i]])
 #################################################
 # ON LOAD ACTIONS
 ###
@@ -188,7 +197,7 @@ def _onload(self):
     import time,sys
     vars.output=self.outputs[vars.interface_nb]
     #Load the remote control on some VPs
-    # loadVPs(["192.168.0.8"])
+    # loadVPs(_LIST_VPS)
 
     # Cleaning the arm
     vars.lightnote(vars.BASE_NOTE_ARM_TAKE,2)
@@ -207,7 +216,8 @@ def pagepress(trigger,val,note,*params):
     "Analise a press on the pagebuttons"
     i,j=noteToPos(note)
     try:
-        _ACTIONS[0][i+8*j](trigger,i,j,val,*params)
+        _ACTIONS[vars.page][i+8*j](trigger,i,j,val,*params)
+        # dprint("[Info] : Action received ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
     except TypeError as e:
         dprint("[Error] : Unassigned action ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
 
@@ -217,7 +227,6 @@ def pagepress(trigger,val,note,*params):
 
 def switchinput(trigger,i,j,val,*params): ## Marked for deletion
     "Switch to the desired layer i1"
-
     # These two lines could be better done
     vars.lastpress=(i,j)
 
@@ -232,7 +241,6 @@ def switchinput(trigger,i,j,val,*params): ## Marked for deletion
 
 def takeall(trigger,val,note,*params):
     "Take all TA"
-
     if not vars.takearmed:
         return
     # unarmtake()
@@ -272,37 +280,62 @@ def armtake(trigger,val,note,*params):
     vars.timertake.start()
 
 
-
 #################################################
 # VIDEOPROJECTOR CONTROL
 ###
+def switchvp(trigger,i,j,val,*params):
+    "Gestion of the VP actions"
+    # 0-3 VP1 // 4-7 VP2
+    vp_i=i//4
+    vp_act=i%4
 
 def loadVPs(listVP):
     "Load the VP list"
     try:
-        vars.list_vp=[openVP()]
-        vars.list_shutter_open=[i.st_shutter=='On' for i in vars.list_vp]
+        vars.list_vp=[openVP(VP) for VP in listVP]
+        vars.nb_vp=len(vars.list_vp)
+
+        vars.list_shutter_open=[VP.st_shutter=='On' for VP in vars.list_vp]
         print(vars.list_shutter_open)
     except Exception as e:
         print("[panaRemote] An unexpected error occured while operating the videoprojector")
         print(e)
 
 
+def updateVPLights(listVP):
+    "Update the status of VPs"
+    for i in range(vars.nb_vp):
+        VP=vars.list_vp[i]
+        VP.getStatus()
+        vars.list_shutter_open[i]=(VP.st_shutter=='On')
+
+    for vp_i in range(min(2,vars.nb_vp)):
+        status=vars.list_vp[i]
+        vars.VALUES[vars.page][7][0+4*vp_i]=vars.COLORS["green"]
+        vars.VALUES[vars.page][7][1+4*vp_i]=vars.COLORS["red"]
+        vars.VALUES[vars.page][7][2+4*vp_i]=vars.COLORS["orange"]
+        if status:
+            vars.VALUES[vars.page][7][0+4*vp_i]|=_SELECTED
+        else:
+            vars.VALUES[vars.page][7][1+4*vp_i]|=_SELECTED
+
+
 def openVP(adress):
-    return panarequest.VP('192.168.0.8')
+    return panarequest.VP(adress)
 
-def panaShut():
+def panaShut(trigger,i,j,val,*params):
     pass
 
-def panaOpen():
+def panaOpen(trigger,i,j,val,*params):
     pass
 
-def panaToggle():
+def panaToggle(trigger,i,j,val,*params):
     pass
 
 def vpcontroll(trigger,val,note,*params):
     "Receive a vp vpcontroll trigger"
 
+dprint("[Info] Function loading done")
 
 #################################################
 # ACTION ASSIGNEMENT
@@ -312,10 +345,16 @@ _ACTIONS=[
     [None]*64
 ]
 
-for i in range(7):
-    _ACTIONS[0][i]=switchinput
-    _ACTIONS[0][i+8]=switchmastermemory
+for i in range(8):
+    _ACTIONS[0][i+8*0]=switchinput
+    _ACTIONS[0][i+8*1]=switchmastermemory
+    # _ACTIONS[0][i+8*7]=switchvp
 
+_ACTIONS[0][0+7*8]=panaOpen
+_ACTIONS[0][1+7*8]=panaShut
+_ACTIONS[0][2+7*8]=panaToggle
+
+dprint("[Info] Action loading done")
 
 ####################################################
 #  INTERFACE DEFINITION
@@ -331,8 +370,9 @@ class MidiInterface(BasicMidiInterface):
         self.functionlist["pagepress"]=pagepress
         self.functionlist["controllpress"]=controllpress
 
-        self.functionlist["switchinput"]=switchinput
-        self.functionlist["mastermemory"]=switchmastermemory
+        # self.functionlist["switchinput"]=switchinput
+        # self.functionlist["mastermemory"]=switchmastermemory
+        # self.functionlist['vpcontroll']=vpcontroll
+
         self.functionlist["takeall"]=takeall
         self.functionlist["armtake"]=armtake
-        self.functionlist['vpcontroll']=vpcontroll
