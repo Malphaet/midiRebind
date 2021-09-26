@@ -34,7 +34,7 @@ class pyautonope(object):
     def __repr__(self,*args,**kwargs):
         return ''
 
-    def __getattribute__(self,*args,**kwargs):
+    def __getattr__(self,*args,**kwargs):
         return self
 
 class fakeRemote(pyautonope):
@@ -43,14 +43,14 @@ class fakeRemote(pyautonope):
         self.st_osd="Off"
         self.st_input="SDI"
 
-    def __getattribute__(self,*args,**kwargs):
-        return fakeRemote()
-
     def shutterOn(self):
         self.st_shutter='On'
 
     def shutterOff(self):
         self.st_shutter='Off'
+
+    def __getattr__(self,name):
+        return self
 
 if __TESTING:
     pyautogui=pyautonope()
@@ -69,6 +69,7 @@ else:
 ###
 
 _NOTIMER=pyautonope()
+_NOACTION=_NOTIMER
 
 _INACTIVE=0b1
 _ACTIVE=0b10
@@ -148,7 +149,8 @@ class demvars():
         self.ACTIVE_VALUES=self.PAGE_VALUES[self.page] # Marked for deletion
 
         self.takearmed=False
-
+        self.doublepressed_timer={}
+        self.doublepressed_prot={}
         #self.COLORPLUGS={0:_COLORS["yellow"],1:_COLORS["green"],2:_COLORS["blinking_green"],3:_COLORS["red"]}
         #_INACTIVE _ACTIVE _SELECTED _LIVE
         self.PLUGCOLORS={
@@ -359,8 +361,13 @@ def switchvp(trigger,i,j,val,*params):
             panaShut([vars.list_vp[vp_i]])
         elif vp_act==2: # Switch
             panaToggle([vars.list_vp[vp_i]])
+        else:
+            return
         updateVPLights()
+        vars.updatevp()
         # print(vars.list_vp)
+    except IndexError:
+        dprint("[Warning] VP number {} isn't defined".format(vp_i+1))
     except Exception as e:
         print(e)
 
@@ -388,44 +395,58 @@ def updateVPLights():
         vars.ACTIVE_VALUES[7][1+4*vp_i]=_LIVE       # Might not be a good idea to do it this way
         vars.ACTIVE_VALUES[7][2+4*vp_i]=_INACTIVE   # Might not be a good idea to do it this way
         if status:
-            vars.ACTIVE_VALUES[7][0+4*vp_i]|=_SELECTED
-        else:
             vars.ACTIVE_VALUES[7][1+4*vp_i]|=_SELECTED
-    # for i in range(vars.nb_vp):
-    #     VP=vars.list_vp[i]
-    #     VP.getStatus()
-    #     list_shutter_open.append(VP.st_shutter=='On')
+        else:
+            vars.ACTIVE_VALUES[7][0+4*vp_i]|=_SELECTED
 
-    # for vp_i in range(min(2,vars.nb_vp)):
-    #     status=list_shutter_open[i]
-    #     vars.ACTIVE_VALUES[7][0+4*vp_i]=_ACTIVE     # Might not be a good idea to do it this way
-    #     vars.ACTIVE_VALUES[7][1+4*vp_i]=_LIVE       # Might not be a good idea to do it this way
-    #     vars.ACTIVE_VALUES[7][2+4*vp_i]=_INACTIVE   # Might not be a good idea to do it this way
-    #     if status:
-    #         vars.ACTIVE_VALUES[7][0+4*vp_i]|=_SELECTED
-    #     else:
-    #         vars.ACTIVE_VALUES[7][1+4*vp_i]|=_SELECTED
 
+def deactivate(name,note=None,color=None):
+    "Reset the press count of a button"
+    def _timedDesactivation():
+        # print("Deactivating: ",name)
+        vars.doublepressed_timer[name].cancel()
+        vars.doublepressed_prot[name]=False
+        vars.doublepressed_timer[name]=_NOTIMER
+        if note!=None:
+            #if color==None: color=BASECOLOR[Note]
+            vars.lightnote(note,color)
+
+    return _timedDesactivation
+
+def doublepress(funct):#Note,color vars.lightnote(vars.BASE_NOTE_ARM_TAKE,1)
+    "Offer a doublepress protection to a function"
+    # print("Building doublepress protection for",funct.__name__)
+    vars.doublepressed_prot[funct.__name__]=False
+    vars.doublepressed_timer[funct.__name__]=_NOTIMER
+    def _doubleProtected(*args,**kwargs):
+        if vars.doublepressed_prot[funct.__name__]:
+            # print("Launching function",funct.__name__,args,kwargs)
+            vars.doublepressed_prot[funct.__name__]=False
+            vars.doublepressed_timer[funct.__name__].cancel()
+            funct(*args,**kwargs)
+        else:
+            # print("Launching the timer for",funct.__name__,args,kwargs)
+            vars.doublepressed_timer[funct.__name__].cancel()
+            vars.doublepressed_timer[funct.__name__]=Timer(_TIMERTAKE, deactivate(funct.__name__))
+            vars.doublepressed_prot[funct.__name__]=True
+            vars.doublepressed_timer[funct.__name__].start()
+    return _doubleProtected
 
 def openVP(adress):
     return panarequest.VP(adress)
 
+@doublepress
 def panaShut(listVP):
-    if not vars.takearmed:
-        return
-
     for vp in listVP:
         vp.shutterOn()
 
+@doublepress
 def panaOpen(listVP):
-    if not vars.takearmed:
-        return
     for vp in listVP:
-        vp.shutterOn()
+        vp.shutterOff()
 
+@doublepress
 def panaToggle(listVP):
-    if not vars.takearmed:
-        return
     for vp in listVP:
         if vp.st_shutter=="On":
             vp.shutterOff()
@@ -439,7 +460,7 @@ dprint("[Info] Function loading done")
 #####
 
 _ACTIONS=[
-    [None]*64
+    [_NOACTION]*64
 ]
 def _pos(i,j):
     return i+8*j #_BASE_NOTE_INPUT+8-i-j*8
