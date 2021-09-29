@@ -4,3 +4,6 @@
 [submodule "panaremote"]
 	path = panaremote
 	url = git@github.com:Malphaet/panaremote.git
+[submodule "pythonAnalogWay"]
+	path = pythonAnalogWay
+	url = git@github.com:Malphaet/pythonAnalogWay.git

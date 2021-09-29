@@ -31,14 +31,14 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * TODO: Explain it better than just "look at the ones I made"
 
 # Improvements
-* Add Fix values
 * Better note / cc / pc notation
 * Add Fade (in ms) from one value to another
 * Have a way to know last value for the note/cc (the last one sent/received)
 * Make toggles a function modifying a variable/state and sending result
 * Allow for a multi-in interfaces
-* Allow for a null interface out
+* TODO: More testing for null interface out
 * URGENT : /funct with an existing trigger might not work, should be with an empty trigger anyway.
 * Add asynchroneous mode ?
 * URGENT : Crash when assigning to an existing trigger
-* TODO: Make a @armtake and @doublepress decorator
+* TODO: Make a @armtake decorator
+* TODO: Async and Disconection protect for VPs
