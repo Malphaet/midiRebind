@@ -260,14 +260,14 @@ def _onload(self):
 ###
 
 def pressKeys(*keys):
+    "Press a key sequence"
     def _action(trigger,i,j,val,*params):
         pyautogui.hotkey(*keys)
-
     return _action
 
 def controllpress(trigger,val,note,*params):
+    "A key was pressed on the control area"
     i=note-_BASE_NOTE_CTRL
-
     if i==0:
         # pyautogui.hotkey("ctrl","fn","S")
         return
@@ -276,16 +276,16 @@ def controllpress(trigger,val,note,*params):
         #     _ACTIONS[vars.page][i+8*j](trigger,i,j,val,*params)
         #     # dprint("[Info] : Action received ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
         # except TypeError as e:
-        dprint("[Error] : Unassigned action ({}) - Note {:2} ({:3})".format(i,note,val))
+        dprint("[Error] : Unassigned control ({}) - Note {:2} ({:3})".format(i,note,val))
 
 def pagepress(trigger,val,note,*params):
-    "Analise a press on the pagebuttons"
+    "A key was pressed on the pagebuttons area"
     i,j=noteToPos(note)
     try:
         _ACTIONS[vars.page][i+8*j](trigger,i,j,val,*params)
         # dprint("[Info] : Action received ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
     except TypeError as e:
-        dprint("[Error] : Unassigned action ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
+        dprint("[Error] : Unassigned pagebutton ({}:{}) - Note {:2} ({:3})".format(i,j,note,val))
         dprint(e)
 
 #################################################

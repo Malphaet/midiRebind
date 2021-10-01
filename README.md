@@ -41,5 +41,6 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * Add asynchroneous mode ?
 * URGENT : Crash when assigning to an existing trigger
 * TODO: Make a @armtake decorator
-* TODO: Async and Disconection protect for VPs
+* TODO: Async and Disconnection protect for VPs
 * TODO: Disconnect: 'NoneType' object has no attribute 'groups' : Should handle disconnct & Crashes
+* TODO: Color and uncolor VP as it connects
