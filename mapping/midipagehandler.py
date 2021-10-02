@@ -1,7 +1,6 @@
 ###########################
 # IMPORTS
 
-
 ###########################
 # FUNCTION DEFINES
 
@@ -58,7 +57,7 @@ class midiPageHandler(object):
         for i,j in self.allIndexes():
             self._maxN=max(table[i][j],self._maxN)
         self._noteToPos=[(None,None)]*(self._maxN+1)
-        self._posToNote=[[table[i][j] for i in range(self._widthV)] for j in range(self._heightV)]
+        self._posToNote=[[table[i][j] for j in range(self._widthV)] for i in range(self._heightV)]
         for i,j in self.allIndexes():
             self._noteToPos[table[i][j]]=(i,j)
 
@@ -144,11 +143,11 @@ class midiPageHandler(object):
     # Table utilities
     def getTableElt(self,table,linecol):
         "Get an element from a table, either _line or _basevalues"
-        return table[linecol[0],linecol[1]]
+        return table[linecol[0]][linecol[1]]
 
     def getTableLine(self,table,line):
         "Get a line from a table"
-        return table[i]
+        return table[line]
 
     def getTableColumn(self,table,col):
         "Get a column from a table"
@@ -162,7 +161,7 @@ class midiPageHandler(object):
         "Change a line in a table (No notifications) (no copy())"
         table[line]=value
 
-    def setTableCol(self,table,col,values):
+    def setTableColumn(self,table,col,values):
         "Change a column to a specific list of values (No notifications)"
         for i in range(len(values)):
             table[i][col]=values[i]
@@ -187,13 +186,17 @@ class midiPageHandler(object):
         lineM='[{:3}] '*self._widthV
         sep = "*"+'------'*(self._widthV)+"*"
         if table==None:
-            table=self._basevalues
+            table=self._activebasevalues
         print(sep)
         print('   '+self.__repr__())
-        for page in self._basevalues:
-            print(sep)
-            for line in page:
+        print(sep)
+        for line in table:
+            if type(line[0])==int:
                 print(" "+lineM.format(*line))
+            else:
+                print(sep)
+                for elt in line:
+                    print(" "+lineM.format(*elt))
         print(sep)
 
 class AkaiAPCMini(midiPageHandler):
@@ -203,11 +206,23 @@ class AkaiAPCMini(midiPageHandler):
         super(AkaiAPCMini,self).__init__([[i+(7-j)*8 for i in range(8)] for j in range(8)])
         # Add the two control lines
         self.initValues()
-        #self.changePage(0)
         self._updateSize()
-        self.changePage(0)
+        # self.changePage(0)
 
 if __name__ == '__main__':
-
     ak=AkaiAPCMini()
-    ak.prettyPrint()
+    ak.prettyPrint(ak._posToNote)
+    # print(ak._posToNote)
+    print(ak.getTableElt(ak._posToNote,(5,5)))
+    (ak.setTableElt(ak._posToNote,(5,5),66))
+    print(ak.getTableElt(ak._posToNote,(5,5)))
+    #
+    print(ak.getTableLine(ak._posToNote,4))
+    (ak.setTableLine(ak._posToNote,4,[i*5 for i in range(8)]))
+    print(ak.getTableLine(ak._posToNote,4))
+
+    print(ak.getTableColumn(ak._posToNote,4))
+    (ak.setTableColumn(ak._posToNote,4,[i*3 for i in range(8)]))
+    print(ak.getTableColumn(ak._posToNote,4))
+
+    # getTableColumn(self,table,col)
