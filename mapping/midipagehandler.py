@@ -43,7 +43,7 @@ class midiPageHandler(object):
         self._widthV=0
         self._changes=set()
         self._listPossibleValues={None:0b0}
-        self.__maxV=0b0
+        self.__maxV=0b1
         self._page=0
         self._maxpages=pages
         self._maxN=0
@@ -75,14 +75,19 @@ class midiPageHandler(object):
         else:
             self._widthV=0
 
-    def addPossibleValue(self,value):
+    def addPossibleValues(self,values):
         "Add a possible value in the dict"
+        if len(values)!=1:
+            for value in values:
+                self.addPossibleValues([value])
+            return
+        value=values[0]
         if value in self._listPossibleValues:
             wprint("Value {} is already in the dictionnaty of possible values")
             return False
         else:
-            self.__maxV*=2
             self._listPossibleValues[value]=self.__maxV
+            self.__maxV*=2
             return True
 
     def newChangedValues(self):
@@ -116,8 +121,12 @@ class midiPageHandler(object):
     def fullRedraw(self,redrawAll=False):
         "Redraw every changed value"
         if redrawAll: # Trigger a full redraw of everything
-            pass
-
+            for i,j in self.allIndexes():
+                self.addChange((i,j))
+            return
+        for i,j in self.allIndexes():
+            if self._changedbasevalues[i][j]!=self._activebasevalues[i][j]:
+                self.addChange((i,j))
     ####################
     # Value Access methods
     def addChange(self,linecol):
@@ -209,20 +218,23 @@ class AkaiAPCMini(midiPageHandler):
         self._updateSize()
         # self.changePage(0)
 
+_TEST=True
 if __name__ == '__main__':
     ak=AkaiAPCMini()
     ak.prettyPrint(ak._posToNote)
     # print(ak._posToNote)
-    print(ak.getTableElt(ak._posToNote,(5,5)))
-    (ak.setTableElt(ak._posToNote,(5,5),66))
-    print(ak.getTableElt(ak._posToNote,(5,5)))
+    # print(ak.getTableElt(ak._posToNote,(5,5)))
+    # (ak.setTableElt(ak._posToNote,(5,5),66))
+    # print(ak.getTableElt(ak._posToNote,(5,5)))
+    # #
+    # print(ak.getTableLine(ak._posToNote,4))
+    # (ak.setTableLine(ak._posToNote,4,[i*5 for i in range(8)]))
+    # print(ak.getTableLine(ak._posToNote,4))
     #
-    print(ak.getTableLine(ak._posToNote,4))
-    (ak.setTableLine(ak._posToNote,4,[i*5 for i in range(8)]))
-    print(ak.getTableLine(ak._posToNote,4))
+    # print(ak.getTableColumn(ak._posToNote,4))
+    # (ak.setTableColumn(ak._posToNote,4,[i*3 for i in range(8)]))
+    # print(ak.getTableColumn(ak._posToNote,4))
 
-    print(ak.getTableColumn(ak._posToNote,4))
-    (ak.setTableColumn(ak._posToNote,4,[i*3 for i in range(8)]))
-    print(ak.getTableColumn(ak._posToNote,4))
-
-    # getTableColumn(self,table,col)
+    ak.addPossibleValues(("Inactive","Active","Selected","Live"))
+    for i,v in ak._listPossibleValues.items():
+        print("{}:{:b}".format(i,v))
