@@ -132,22 +132,36 @@ class midiPageHandler(object):
     ####################
     # Modifiers methods
 
-    def addStatus(self,linecol,status):
-        "Add a status by name to a position"
-        self.addChange(linecol)
-        self._changedbasevalues[linecol[0]][linecol[1]]|=self._listPossibleValues[status]
+    def statusId(self,namestatus):
+        "Return the id of a state"
+        return self._listPossibleValues[namestatus]
 
     def addStatuses(self,linecol,status):
         "Add a status by name to a position"
         for status in status:
-            self.addStatus(linecol,status)
+            self.addStatusId(linecol,self.statusId(status))
 
-    def removeStatus(self,linecol,status):
-        "Remove a status by name to a position"
+    def removeStatuses(self,linecol,liststatus):
+        "Remove a list of status, by name"
+        for status in liststatus:
+            self.removeStatusId(linecol,self.statusId(status))
+
+    def addStatusId(self,linecol,statusId):
+        "Add a status by name to a position"
         self.addChange(linecol)
-        if (self._changedbasevalues[linecol[0]][linecol[1]]&self._listPossibleValues[status]):
-            self._changedbasevalues[linecol[0]][linecol[1]]-=self._listPossibleValues[status]
+        self._changedbasevalues[linecol[0]][linecol[1]]|=statusId
 
+    def removeStatusId(self,linecol,statusId):
+        "Remove a status by name to a position ONLY WORK WITH 1bit"
+        self.addChange(linecol)
+        if (self._changedbasevalues[linecol[0]][linecol[1]]&statusId):
+            self._changedbasevalues[linecol[0]][linecol[1]]-=statusId
+
+    def hasStatus(self,statusId):
+        "Check if a status is present"
+        if (self._changedbasevalues[linecol[0]][linecol[1]]&statusId):
+            return True
+        return False
     ####################
     # Value Access methods
     def addChange(self,linecol):
@@ -256,9 +270,19 @@ if __name__ == '__main__':
     ak.addPossibleValues(("Inactive","Active","Selected","Live"))
     for i,v in ak._listPossibleValues.items():
         print("{}:{:b}".format(i,v))
-
     ak.addStatuses((2,1),("Active","Selected","Live"))
-    ak.addStatus((5,5),"Active")
-    ak.addStatus((5,5),"Selected")
-    ak.addStatus((5,7),"Live")
+    ak.addStatusId((5,5),ak.statusId("Active"))
+    ak.addStatusId((5,5),ak.statusId("Selected"))
+    ak.addStatusId((5,7),ak.statusId("Live"))
+    ak.prettyPrint(ak._changedbasevalues)
+    ak.prettyPrint(ak._activebasevalues)
+    ak.applyChanges()
+    ak.prettyPrint(ak._activebasevalues)
+    ak.removeStatusId((2,1),ak.statusId("Active"))
+    ak.prettyPrint(ak._changedbasevalues)
+    ak.removeStatusId((2,1),ak.statusId("Selected"))
+    ak.prettyPrint(ak._changedbasevalues)
+    ak.removeStatusId((2,1),ak.statusId("Live"))
+    ak.prettyPrint(ak._changedbasevalues)
+    ak.removeStatuses((5,5),("Active","Selected"))
     ak.prettyPrint(ak._changedbasevalues)
