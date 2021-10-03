@@ -127,6 +127,27 @@ class midiPageHandler(object):
         for i,j in self.allIndexes():
             if self._changedbasevalues[i][j]!=self._activebasevalues[i][j]:
                 self.addChange((i,j))
+
+
+    ####################
+    # Modifiers methods
+
+    def addStatus(self,linecol,status):
+        "Add a status by name to a position"
+        self.addChange(linecol)
+        self._changedbasevalues[linecol[0]][linecol[1]]|=self._listPossibleValues[status]
+
+    def addStatuses(self,linecol,status):
+        "Add a status by name to a position"
+        for status in status:
+            self.addStatus(linecol,status)
+
+    def removeStatus(self,linecol,status):
+        "Remove a status by name to a position"
+        self.addChange(linecol)
+        if (self._changedbasevalues[linecol[0]][linecol[1]]&self._listPossibleValues[status]):
+            self._changedbasevalues[linecol[0]][linecol[1]]-=self._listPossibleValues[status]
+
     ####################
     # Value Access methods
     def addChange(self,linecol):
@@ -140,13 +161,10 @@ class midiPageHandler(object):
 
     def applyChanges(self):
         "Apply all changes and erase them, then reload another _changedbasevalues"
-        pass
+        for i,j in self.listChanges():
+            self._activebasevalues[i][j]=self._changedbasevalues[i][j]
+        self._changes=set()
 
-    #####################
-    # Value modification methods
-    def addModifier(self,linecol,modifier):
-        "Add the modifier to the list of pending changes"
-        pass
 
     ######################
     # Table utilities
@@ -238,3 +256,9 @@ if __name__ == '__main__':
     ak.addPossibleValues(("Inactive","Active","Selected","Live"))
     for i,v in ak._listPossibleValues.items():
         print("{}:{:b}".format(i,v))
+
+    ak.addStatuses((2,1),("Active","Selected","Live"))
+    ak.addStatus((5,5),"Active")
+    ak.addStatus((5,5),"Selected")
+    ak.addStatus((5,7),"Live")
+    ak.prettyPrint(ak._changedbasevalues)
