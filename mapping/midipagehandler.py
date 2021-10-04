@@ -29,23 +29,32 @@ if _VERBOSE>=4:
 ###########################
 # CLASS DEFINES
 class lightHandler():
-    def __init__(self):
+    def __init__(self,statusList,listAssociations):
         self.page=0
-
-        self.interface_nb=1
         self.output=None
-
-        self.listchange=[]
+        self.statusList={}
+        self.statusAssociation={}
         self.lastpress=(None,None) #Does only account for the 8x8
         self.selected_pulse=(None,None)
         self.live_pulse=(None,None)
+        self.addStatusList(statusList)
+        self.initialiseColor()
+        self.associateColor(listAssociations)
 
-    # Should do it in a similar way, cant find it
-    def addChange(self,i,j,value,reset=True): #mode=_OR
-        "Do a value change, store the change for update"
-        if i==None or j==None:
-            return
-        self.listchange+=[[i,j,value,reset]]
+    def addStatusList(self,statusList):
+        'Add a list of status'
+        self.statusList=statusList
+        self.maxStatus=max(self.statusList.values())
+
+    def initialiseColor(self,default=0):
+        "Initialise the the colorstatus"
+        for status in range(self.maxStatus*2-1):
+            self.statusAssociation[status]=default
+
+    def associateColor(self,listAssociations):
+        "Associate a status combination with a color"
+        for status,color in listAssociations.items():
+            self.statusAssociation[status]=color
 
     def lightcolor(self,col,row,color):
         self.light(col,row,val=_COLORS[color])
@@ -117,6 +126,10 @@ class midiPageHandler(object):
             self.__maxV*=2
             return True
 
+    def listStatus(self):
+        "Return the list of all values"
+        return self._listPossibleValues
+
     def newChangedValues(self):
         "Copy the values of the active values into the changeValues"
         for i,j in self.allIndexes():
@@ -161,6 +174,10 @@ class midiPageHandler(object):
 
     def statusId(self,namestatus):
         "Return the id of a state"
+        if type(namestatus) in (list,tuple):
+            if len(namestatus)>=1:
+                return self.statusId(namestatus[0])|self.statusId(namestatus[1:])
+            return 0
         return self._listPossibleValues[namestatus]
 
     def addStatuses(self,linecol,status):
@@ -275,26 +292,43 @@ class AkaiAPCMini(midiPageHandler):
         # Add the two control lines
         self.initValues()
         self._updateSize()
+        self.colors={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
+        self.addPossibleValues(("Inactive","Active","Selected","Live"))
+        _INACTIVE,_ACTIVE,_LIVE,_SELECTED=self.statusId("Inactive"),self.statusId("Active"),self.statusId("Selected"),self.statusId("Live")
+
+        self.possibleStatus={
+            0:                          self.colors["black"],
+            _INACTIVE:                  self.colors["yellow"],
+            _ACTIVE:                    self.colors["green"],
+            _LIVE:                      self.colors["red"],
+            _SELECTED:                  self.colors["black"], # Selecting empty does nothing
+
+            _INACTIVE|_SELECTED:        self.colors["blinking_yellow"],
+            _ACTIVE|_SELECTED:          self.colors["blinking_green"],
+            _LIVE|_SELECTED:            self.colors["blinking_red"],
+
+            _ACTIVE|_LIVE:              self.colors["red"],
+            _INACTIVE|_LIVE:            self.colors["red"], # Debatable
+
+            _ACTIVE|_INACTIVE:          self.colors["green"],#Just active
+
+            _ACTIVE|_LIVE|_SELECTED:    self.colors["blinking_red"],
+            _ACTIVE|_INACTIVE|_LIVE:    self.colors["blinking_red"], #Just live active
+            _ACTIVE|_INACTIVE|_SELECTED:self.colors["blinking_green"], #Just selected active
+            _INACTIVE|_LIVE|_SELECTED:    self.colors["blinking_red"], # Very debatable
+
+            _ACTIVE|_LIVE|_INACTIVE|_SELECTED:self.colors["blinking_red"] #Just live active selected
+        }
+
+        self.colorHandler=lightHandler(self.listStatus(),self.possibleStatus)
         # self.changePage(0)
 
 _TEST=True
 if __name__ == '__main__':
     ak=AkaiAPCMini()
     ak.prettyPrint(ak._posToNote)
-    # print(ak._posToNote)
-    # print(ak.getTableElt(ak._posToNote,(5,5)))
-    # (ak.setTableElt(ak._posToNote,(5,5),66))
-    # print(ak.getTableElt(ak._posToNote,(5,5)))
-    # #
-    # print(ak.getTableLine(ak._posToNote,4))
-    # (ak.setTableLine(ak._posToNote,4,[i*5 for i in range(8)]))
-    # print(ak.getTableLine(ak._posToNote,4))
-    #
-    # print(ak.getTableColumn(ak._posToNote,4))
-    # (ak.setTableColumn(ak._posToNote,4,[i*3 for i in range(8)]))
-    # print(ak.getTableColumn(ak._posToNote,4))
 
-    ak.addPossibleValues(("Inactive","Active","Selected","Live"))
+    # ak.addPossibleValues(("Inactive","Active","Selected","Live"))
     for i,v in ak._listPossibleValues.items():
         print("{}:{:b}".format(i,v))
     ak.addStatuses((2,1),("Active","Selected","Live"))
@@ -313,3 +347,7 @@ if __name__ == '__main__':
     ak.prettyPrint(ak._changedbasevalues)
     ak.removeStatuses((5,5),("Active","Selected"))
     ak.prettyPrint(ak._changedbasevalues)
+
+    print(ak.statusId(("Active","Selected","Live")))
+    ak.
+    # light=lightHandler(ak.listStatus(),{})

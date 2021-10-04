@@ -38,10 +38,19 @@ _COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow
 from mapping import midiPageHandler
 
 handler=midiPageHandler.AkaiAPCMini()
+class pulseLink(object):
+    """Link between lights, messages and states
+    Receives messages from the pulse and adjust states"""
+    def __init__(self):
+        pass
+
+    def message(self):
+        pass
 
 def _onload(self):
     "Send a reset colors"
     import time,sys
+
     #vars.output=self.outputs[vars.interface_nb]
 
 def pagepress(trigger,val,note,*params):
