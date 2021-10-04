@@ -4,8 +4,9 @@ import mido,re
 from math import trunc
 from math import sin,cos,tan
 from random import randint
-
-def vprint(message):
+#    import traceback
+#    print(traceback.print_stack())
+def dprint(message):
     pass
 
 class BasicMidiInterface(object):
@@ -264,7 +265,7 @@ class MatchError(Exception):
 class BasicMidiTrigger(object):
     """A midi trigger, will do a specific action when called"""
     def __init__(self,interface,parent,messagetype,value,intensity,binded,received_note):
-        #self.vprint=vprint
+        #self.dprint=dprint
         self.output=interface
         self.messagetype=messagetype
         self.value=value
@@ -314,7 +315,7 @@ class BasicMidiTrigger(object):
             self.message=self.message.copy(**self.valuetype)
 
     def sendmessage(self,val):
-        vprint("[Sent:({}.)]: {}".format(self.interface.name.split(":")[1][:12],self.message))
+        dprint("[Sent:({}.)]: {}".format(self.interface.name.split(":")[1][:12],self.message))
         if self.toggle!=None:
             self.toggle=not self.toggle
         self.interface.send(self.message)
@@ -354,11 +355,14 @@ class BasicMidiTrigger(object):
     def execspecialfn(self,val):
         "Executing a special function"
         try:
-            vprint("[Sent:({}.)]: Note {} / Parameters : {}".format(self.interface_short_name,self.received_note,self.params))
+            dprint("[Sent:({}.)]: Note {} / Parameters : {}".format(self.interface_short_name,self.received_note,self.params))
             # self.funct(self.params)
+
             if self.funct:
-                vprint("[Sending function {} - Note {} / Parameters : {}".format(self.funct.__name__,self.received_note,self.params))
+                dprint("[Sending function {} - Note {} / Parameters : {}".format(self.funct.__name__,self.received_note,self.params))
                 return self.funct(self,val,self.received_note,*self.params)
+        except KeyboardInterrupt:
+            sys.exit()
         except Exception as e:
             print("[ERROR] The function for trigger {} stopped in an unexpected way".format(self))
             print("[ERROR] {}".format(e))
@@ -394,7 +398,7 @@ class EmptyTrigger(BasicMidiTrigger):
 
     def __call__(self, val):
         "Send the message"
-        vprint("[Sending function (call) {} - Note {} / Parameters : {}".format(self.funct.__name__,self.received_note,self.params))
+        dprint("[Sending function (call) {} - Note {} / Parameters : {}".format(self.funct.__name__,self.received_note,self.params))
         self.execspecialfn(val)
 
     def changevalue(self,val):
@@ -403,9 +407,8 @@ class EmptyTrigger(BasicMidiTrigger):
 
     def sendmessage(self,val):
         "It's empty, can't send any message"
-        vprint("[Sending function (send) {} - Note {} / Parameters : {}".format(self.funct,self.received_note,self.params))
+        dprint("[Sending function (send) {} - Note {} / Parameters : {}".format(self.funct,self.received_note,self.params))
         self.execspecialfn(val)
-
 
     def addvalfn(self,nf):
         "There's no value to ajust"

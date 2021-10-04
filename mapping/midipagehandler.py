@@ -28,6 +28,33 @@ if _VERBOSE>=4:
 
 ###########################
 # CLASS DEFINES
+class lightHandler():
+    def __init__(self):
+        self.page=0
+
+        self.interface_nb=1
+        self.output=None
+
+        self.listchange=[]
+        self.lastpress=(None,None) #Does only account for the 8x8
+        self.selected_pulse=(None,None)
+        self.live_pulse=(None,None)
+
+    # Should do it in a similar way, cant find it
+    def addChange(self,i,j,value,reset=True): #mode=_OR
+        "Do a value change, store the change for update"
+        if i==None or j==None:
+            return
+        self.listchange+=[[i,j,value,reset]]
+
+    def lightcolor(self,col,row,color):
+        self.light(col,row,val=_COLORS[color])
+
+    def light(self,col,row,val=1):
+        self.lightnote(self.findit(col,row),val)
+
+    def lightnote(self,note,val=1):
+        self.output.send(mido.Message("note_on",note=note,velocity=val))
 
 class midiPageHandler(object):
     "Page Handler, with some methods to manage a midi remote more easily"

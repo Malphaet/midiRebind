@@ -38,18 +38,19 @@ if __name__ == '__main__':
                 match=Par(msg)
                 res=Acts(match)
             except Module.MatchError:
-                pass
+                print("[Error] Command in {} could not be matched".format(msg))
             except KeyError:
-                vprint("[Error] Command in {} could not be recognised".format(msg))
+                print("[Error] Command in {} could not be recognised".format(msg))
+            except SystemExit:
+                sys.exit()
             except:
-                 print("[Unexpected error@midibind.py] {}".format(sys.exc_info()))
+                print("[Unexpected error@midibind.py] {}".format(sys.exc_info()))
     except ImportError as e:
         print("[Error] There was an error loading module {} ({})".format(interpath,e))
     except KeyError as e:
         print("[Error] There was an error while loading patch {} ({})".format(path,e))
     except KeyboardInterrupt:
         print("[Keyboard Interrupt] : Exiting...")
-        #del Inter
         sys.exit()
     except OSError as e:
         print('[Error] The patch "patch/{}.ini" is ill-formed or non-existent'.format(args.patch))
@@ -57,4 +58,4 @@ if __name__ == '__main__':
     except TypeError as e:
         print("[Error] Can't iterate over an empty list, check the list of inputs for an available input")
         print(e)
-    # except KeyError
+    # except:

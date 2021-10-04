@@ -42,5 +42,11 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * URGENT : Crash when assigning to an existing trigger
 * TODO: Make a @armtake decorator
 * TODO: Async and Disconnection protect for VPs
-* TODO: Disconnect: 'NoneType' object has no attribute 'groups' : Should handle disconnct & Crashes
+* TODO: Disconnect: 'NoneType' object has no attribute 'groups' : Should handle disconnect & Crashes
 * TODO: Color and uncolor VP as it connects
+* TODO: Unified verbose printing & usage
+
+
+* TODO: Pagehandler: make a note handler
+* TODO: Color management, get colors associated to all statuses
+* TODO: General decorators @armtake

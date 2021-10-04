@@ -1,6 +1,6 @@
 from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
 import mido
-import configparser
+import configparser,sys
 
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
 class MessageParse(BasicMessageParse):
@@ -51,6 +51,8 @@ class Actions(BasicActions):
             listact=self.findAction(match.type,match.note,"*")
             for act in listact:
                 act(match.value)
+        except SystemExit:
+            sys.exit()
         except:
             # No action linked to the trigger
             pass
