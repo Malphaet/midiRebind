@@ -1,3 +1,4 @@
+#!/bin/python3
 from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
 import mido
 from mapping.midi import MessageParse
@@ -35,8 +36,10 @@ _COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow
 # GLOBAL CONTROL
 ###
 
+# try:
 from mapping import midiPageHandler
-
+# except:
+#     from
 handler=midiPageHandler.AkaiAPCMini()
 class pulseLink(object):
     """Link between lights, messages and states
@@ -50,13 +53,16 @@ class pulseLink(object):
 def _onload(self):
     "Send a reset colors"
     import time,sys
-
+    # handler.prettyPrint(handler._activebasevalues)
     #vars.output=self.outputs[vars.interface_nb]
 
 def pagepress(trigger,val,note,*params):
     "A key was pressed on the pagebuttons area"
     try:
-        print(handler._noteToPos[note])
+        pos=handler._noteToPos[note]
+        #,handler._posToNote[pos[0],pos[1]]
+        dprint("Received {} (note:{})".format(pos,note)
+
     except TypeError as e:
         eprint("[Error] : Unassigned pagebutton {} - Note {:2} ({:3})".format(trigger,note,val))
         eprint(e)

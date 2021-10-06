@@ -1,3 +1,4 @@
+#!/bin/python3
 ###########################
 # IMPORTS
 
@@ -84,6 +85,7 @@ class midiPageHandler(object):
         self._maxpages=pages
         self._maxN=0
         self._makeNotes(table)
+        self.initValues()
 
     ####################
     # Manage attributes
@@ -288,10 +290,10 @@ class AkaiAPCMini(midiPageHandler):
     "A specific implementation of the page handler"
 
     def __init__(self):
-        super(AkaiAPCMini,self).__init__([[i+(7-j)*8 for i in range(8)] for j in range(8)])
+        super(AkaiAPCMini,self).__init__([[i+(7-j)*8 for i in range(8)] for j in range(8)]+[[i for i in range(64,72)],[i for i in range(82,90)]])
         # Add the two control lines
         self.initValues()
-        self._updateSize()
+
         self.colors={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
         self.addPossibleValues(("Inactive","Active","Selected","Live"))
         _INACTIVE,_ACTIVE,_LIVE,_SELECTED=self.statusId("Inactive"),self.statusId("Active"),self.statusId("Selected"),self.statusId("Live")
@@ -349,5 +351,5 @@ if __name__ == '__main__':
     ak.prettyPrint(ak._changedbasevalues)
 
     print(ak.statusId(("Active","Selected","Live")))
-    ak.
+    # ak.
     # light=lightHandler(ak.listStatus(),{})
