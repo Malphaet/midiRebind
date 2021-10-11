@@ -4,6 +4,7 @@ from mapping.midi import MessageParse
 from mapping.midi import Actions
 import sys
 
+from mapping.utils import doublepress
 ###########################
 # FUNCTION DEFINES
 
@@ -50,18 +51,23 @@ class pulseLink(object):
 def _onload(self):
     "Send a reset colors"
     import time,sys
+    handler.addInterfaceOut(self.interfaceOut(1))
+    IOInterface=midiPageHandler.IOInterface(handler)
 
     #vars.output=self.outputs[vars.interface_nb]
 
 def pagepress(trigger,val,note,*params):
     "A key was pressed on the pagebuttons area"
     try:
-        print(handler._noteToPos[note])
+        # print(handler._noteToPos[note])
+        handler.noteReceived(note,val)
     except TypeError as e:
         eprint("[Error] : Unassigned pagebutton {} - Note {:2} ({:3})".format(trigger,note,val))
         eprint(e)
 
+@doublepress
 def quitpress(trigger,val,note,*params):
+    # handler.
     print("Quitting...")
     sys.exit()
 
