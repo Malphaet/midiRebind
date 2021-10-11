@@ -5,6 +5,7 @@ from mapping.midi import Actions
 import sys
 
 from mapping.utils import doublepress
+from pythonAnalogWay import bindings
 ###########################
 # FUNCTION DEFINES
 
@@ -51,11 +52,14 @@ class pulseLink(object):
 def _onload(self):
     "Send a reset colors"
     import time,sys
+    HOSTS=[["127.0.0.1",3000]] # Test server
+    ctrl1=bindings.analogController(*HOSTS[0])
+    ctrl1.connectionSequence()
+    #ctrl1.keepPinging()
     handler.addInterfaceOut(self.interfaceOut(1))
-    IOInterface=midiPageHandler.IOInterface(handler)
-
-    #vars.output=self.outputs[vars.interface_nb]
-
+    IOInterface=midiPageHandler.IOInterface(handler,ctrl1)
+    handler.addModule(midiPageHandler.pulseController,[4,1,2])
+    
 def pagepress(trigger,val,note,*params):
     "A key was pressed on the pagebuttons area"
     try:

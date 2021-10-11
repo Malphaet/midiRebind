@@ -50,3 +50,5 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * TODO: Pagehandler: make a note handler
 * TODO: Color management, get colors associated to all statuses
 * TODO: General decorators @armtake
+
+* URGENT : Fix the connection issue

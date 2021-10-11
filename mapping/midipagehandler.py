@@ -30,11 +30,12 @@ if _VERBOSE>=4:
 # CLASS DEFINES
 class IOInterface():
     "Handle the IO actions between an external script and a midiPageHandler interface"
-    def __init__(self,pagehandler):
+    def __init__(self,pagehandler,remoteController):
         self._pageHandler=pagehandler
         self._listActionsH={}
         self._listActionsIO={}
         self._pageHandler.IOInterface=self
+        self._externalProgram=remoteController
 
     def addActionH(self,matchName,action):
         """Associate a function to a match to a message received
@@ -274,6 +275,7 @@ class midiPageHandler(object):
 
     def posToNote(self,linecol):
         return self.noteFrom(linecol)
+
     def noteFrom(self,linecol):
         "Obtain note from the linecol"
         return self.getTableElt(self._posToNote,linecol)
@@ -339,6 +341,70 @@ class midiPageHandler(object):
                     print(" "+lineM.format(*elt))
         print(sep)
 
+
+class pulseController(object):
+    "Receive controls over a specific range and map them to commands to send"
+    def __init__(self,IOInterface,returnInterface,ranges={j:j for j in range(3)}):
+        self.ranges=ranges
+        self.retunRanges={i:j for j,i in ranges.items()}
+        _ALL_MESSAGE_TYPES=[
+            "STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"
+        ]
+        self.returnInterface=returnInterface
+        self.IOInterface=IOInterface
+        self.output=None
+        self.poslastpressed=(0,0)
+        self.idlastlayerpressed=0
+        self.lastlayerpressed=[0,0]
+        self.idlastmemorypressed=0
+        self.offset=0   # Offset on the lines
+
+    def pressReceived(self,linecol,val):
+        "Received an order from the controller, the order must be associated with an actual command and send it to the IOController"
+        try:
+            line,col=linecol
+            trueline=self.ranges[line]
+            if trueline==0: # It's a press on layer A
+                self.layerPress((trueline,col),trueline,val,0)
+            elif trueline==1: # It's a press on layer B
+                self.layerPress((trueline,col),trueline,val,0)
+            elif trueline==2: # It's a memory press
+                self.memoryPress((trueline,col),val,0)
+            else:
+                pass # The pulse only takes 3 lines
+        except KeyError as e:
+            wprint("An error occured while the pulse was processing order",e)
+
+    def layerPress(self,linecol,layer,val,liveprev):
+        "Adjust the color and info depending on the press"
+        self.idlastlayerpressed=layer
+        line,col=linecol
+        trueline=self.retunRanges[line]
+        truelinecol=(trueline,col)
+        self.returnInterface.removeStatus((trueline,self.lastlayerpressed[layer]),"Selected")
+        self.lastlayerpressed[layer]=col
+        self.IOInterface.sendAction("LAYERINP",layer,col,liveprev)
+        if liveprev==0:
+            self.returnInterface.addStatus(truelinecol,"Selected")
+        else:
+            self.returnInterface.addStatus(truelinecol,"Live")
+        self.returnInterface.applyChanges()
+        self.returnInterface.applyColors()
+
+    def memoryPress(self,linecol,val,liveprev):
+        """Adjust the color and info of a memory press (take or preview)
+        Should be Green if defined and Yellow if not, selecting makes it prev"""
+        line,col=linecol
+        # self.removeStatus((line,self.idlastmemorypressed),"Selected")
+        # self.idlastmemorypressed=col
+        # self.addStatus(linecol,"Selected")
+        self.IOInterface.sendAction("LOADMM",col,liveprev)
+        # self.applyChanges()
+        # self.applyColors()
+
+    def __repr__(self):
+        return("PulseController{} ({self.idlastlayerpressed},{self.idlastmemorypressed})".format(list(self.ranges.keys()),self=self))
+
 class AkaiAPCMini(midiPageHandler):
     "A specific implementation of the page handler"
 
@@ -375,57 +441,32 @@ class AkaiAPCMini(midiPageHandler):
             _ACTIVE|_LIVE|_INACTIVE|_SELECTED:self.colors["blinking_red"] #Just live active selected
         }
 
-        self.output=None
-        self.poslastpressed=(0,0)
-        self.idlastlayerpressed=0
-        self.lastlayerpressed=[0,0]
-        self.idlastmemorypressed=0
-        self.offset=0   # Offset on the lines
-        for j in range(3):
+        self.listModules=[[None]*8] # Only one page and 8x8 for now
+        # self.pulse1=pulseController(self,IOInterface)
+        ###########
+        # For debug purposes
+        for j in range(5):
             for i in range(8):
                 self.addStatus((j,i),"Inactive")
         
-        for j in range(3,8):
+        for j in range(5,8):
             for i in range(8):
                 self.addStatus((j,i),None)
 
-    def noteReceived(self,note,val): # Just for testing, all theese orders come from the pulse
-        "A note has been received"
-        self.poslastpressed=self._noteToPos[note]
-        line,col=self.poslastpressed
-        if line==0 or line==1: # It's a layer1/2 command
-            self.layerPress((line,col),line,val,0)
-        elif line==2:
-            self.memoryPress((line,col),val,0)
-        elif line==7:
-            self.lastVPpressed=col
-        # elif line==8:
-        # lastpagewhateverpressed=col
+    def noteReceived(self,note,val):
+        line,col=self._noteToPos[note]
+        try:
+            self.listModules[self._page][line].pressReceived((line,col),val)
+        except Exception as e:
+            wprint("No module loaded for Line {line}: {e}".format(line=line,e=e))
+            wprint("List of modules available on page {page} is : {modules}".format(page=self._page,modules=self.listModules[self._page]))
 
-    def layerPress(self,linecol,layer,val,liveprev):
-        "Adjust the color and info depending on the press"
-        self.idlastlayerpressed=layer
-        line,col=linecol
-        self.removeStatus((line,self.lastlayerpressed[layer]),"Selected")
-        self.lastlayerpressed[layer]=col
-        self.IOInterface.sendAction("layerchange",layer,col,liveprev)
-        if liveprev==0:
-            self.addStatus(linecol,"Selected")
-        else:
-            self.addStatus(linecol,"Live")
-        self.applyChanges()
-        self.applyColors()
-
-    def memoryPress(self,linecol,val,liveprev):
-        """Adjust the color and info of a memory press (take or preview)
-        Should be Green if defined and Yellow if not, selecting makes it prev"""
-        line,col=linecol
-        # self.removeStatus((line,self.idlastmemorypressed),"Selected")
-        # self.idlastmemorypressed=col
-        # self.addStatus(linecol,"Selected")
-        self.IOInterface.sendAction("memorychange",col,liveprev)
-        # self.applyChanges()
-        # self.applyColors()
+    def addModule(self,rackmodule,rangeActive):
+        "Add a module to the controller, the range of control must be specified"
+        module=rackmodule(self.IOInterface,self,{i:j for i,j in zip(rangeActive,range(len(rangeActive)))})
+        print({i:j for i,j in zip(rangeActive,range(len(rangeActive)))})
+        for i in rangeActive:
+            self.listModules[self._page][i]=module
 
     def addInterfaceOut(self,interfaceOut):
         "Add one interface to send midi messages to, could be done another way"
@@ -446,7 +487,6 @@ class AkaiAPCMini(midiPageHandler):
 
     def lightnote(self,note,val=1):
         self.output.send(mido.Message("note_on",note=note,velocity=val))
-
 
 
 
