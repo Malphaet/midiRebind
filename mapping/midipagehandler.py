@@ -378,30 +378,25 @@ class AkaiAPCMini(midiPageHandler):
         self.output=None
         self.poslastpressed=(0,0)
         self.idlastlayerpressed=0
-        self.lastlayerpressed=(0,0)
+        self.lastlayerpressed=[0,0]
         self.idlastmemorypressed=0
         self.offset=0   # Offset on the lines
         for j in range(3):
             for i in range(8):
                 self.addStatus((j,i),"Inactive")
-        self.addStatus((3,0),"Inactive")
-        self.addStatus((3,1),"Active")
-        self.addStatus((3,2),"Live")
-        self.addStatus((3,3),"Selected")
-        self.addStatus((3,4),"Active","Live")
-        self.addStatus((3,5),("Active","Live","Selected"))
-        self.addStatus((3,6),("Inactive","Selected"))
-        self.addStatus((3,7),"Active")
+        
+        for j in range(3,8):
+            for i in range(8):
+                self.addStatus((j,i),None)
 
-    def noteReceived(self,note,val):
+    def noteReceived(self,note,val): # Just for testing, all theese orders come from the pulse
         "A note has been received"
         self.poslastpressed=self._noteToPos[note]
         line,col=self.poslastpressed
-        print("Note received")
         if line==0 or line==1: # It's a layer1/2 command
             self.layerPress((line,col),line,val,0)
         elif line==2:
-            self.idlastmemorypressed=col
+            self.memoryPress((line,col),val,0)
         elif line==7:
             self.lastVPpressed=col
         # elif line==8:
@@ -411,20 +406,26 @@ class AkaiAPCMini(midiPageHandler):
         "Adjust the color and info depending on the press"
         self.idlastlayerpressed=layer
         line,col=linecol
-        if layer==0:
-            self.removeStatus((0,self.lastlayerpressed[0]),"Selected")
-            # 0 is the Id of the first layer on the remote, having an offset would be a great idea
-            self.lastlayerpressed[0]=col
-
-        else:
-            self.removeStatus((1,self.lastlayerpressed[1]),"Selected")
-            self.lastlayerpressed[1]=col
-
-
+        self.removeStatus((line,self.lastlayerpressed[layer]),"Selected")
+        self.lastlayerpressed[layer]=col
         self.IOInterface.sendAction("layerchange",layer,col,liveprev)
-        self.addStatus((line,col),"Selected")
+        if liveprev==0:
+            self.addStatus(linecol,"Selected")
+        else:
+            self.addStatus(linecol,"Live")
         self.applyChanges()
         self.applyColors()
+
+    def memoryPress(self,linecol,val,liveprev):
+        """Adjust the color and info of a memory press (take or preview)
+        Should be Green if defined and Yellow if not, selecting makes it prev"""
+        line,col=linecol
+        # self.removeStatus((line,self.idlastmemorypressed),"Selected")
+        # self.idlastmemorypressed=col
+        # self.addStatus(linecol,"Selected")
+        self.IOInterface.sendAction("memorychange",col,liveprev)
+        # self.applyChanges()
+        # self.applyColors()
 
     def addInterfaceOut(self,interfaceOut):
         "Add one interface to send midi messages to, could be done another way"
