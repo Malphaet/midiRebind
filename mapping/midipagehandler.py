@@ -73,6 +73,20 @@ class IOInterface():
         except KeyError:
             wprint("Can't send action request",name)
 
+class IOInterfacePulse(IOInterface):
+    "Specialised pulse interface"
+
+    def __init__(self,pagehandler,remoteController):
+        super(IOInterfacePulse,self).__init__(pagehandler,remoteController)
+        self.addActionIO("STATUS",self._externalProgram.getStatus)
+        self.addActionIO("LAYERINP",self._externalProgram.changeLayer)
+        self.addActionIO("TAKEALL",self._externalProgram.takeAll)
+        self.addActionIO("LOADMM",self._externalProgram.loadMM)
+        self.addActionIO("QUICKF",self._externalProgram.quickFrame)
+        self.addActionIO("FREEZE",self._externalProgram.freezeScreenAll)
+
+        self.addActionH("LAYERINP",self._pageHandler.layerCommand)    
+
 class midiPageHandler(object):
     "Page Handler, with some methods to manage a midi remote more easily"
 
@@ -359,6 +373,7 @@ class pulseController(object):
         self.idlastmemorypressed=0
         self.offset=0   # Offset on the lines
 
+
     def pressReceived(self,linecol,val):
         "Received an order from the controller, the order must be associated with an actual command and send it to the IOController"
         try:
@@ -375,6 +390,10 @@ class pulseController(object):
         except KeyError as e:
             wprint("An error occured while the pulse was processing order",e)
 
+    def layerCommand(self,match):
+        "Received a layer command from the pulse, should be the only controller"
+        pass
+
     def layerPress(self,linecol,layer,val,liveprev):
         "Adjust the color and info depending on the press"
         self.idlastlayerpressed=layer
@@ -388,7 +407,7 @@ class pulseController(object):
             self.returnInterface.addStatus(truelinecol,"Selected")
         else:
             self.returnInterface.addStatus(truelinecol,"Live")
-        self.returnInterface.applyChanges()
+        self.returnInterface.applyChanges() 
         self.returnInterface.applyColors()
 
     def memoryPress(self,linecol,val,liveprev):
