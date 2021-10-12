@@ -41,21 +41,21 @@ class IOInterface():
         """Associate a function to a match to a message received
             [externalP] -> Action -> [Handler]
         """
-        self._listActionsH[matchName]=action
+        self._listActionsIO[matchName]=action
 
     def addActionH(self,name,action):
         """Associate a function to match to a handler action
             [Handler] -> Action -> [externalP]
         """
-        self._listActionsIO[name]=action
+        self._listActionsH[name]=action
 
     def messageReceived(self,typeM,messageMatch,*args):
         """Acknoledge a message and do the appropriate actions
             [externalP] -> messageReceived -> Action -> [Handler]
         """
         try:
-            dprint("Received the command {} from the pulse".format(messageMatch))
-            self._listActionsH[typeM](messageMatch,*args)
+            dprint("Received the command {} from the pulse ({})".format(typeM,messageMatch))
+            self._listActionsIO[typeM](messageMatch,*args)
         except KeyError:
             wprint("The message type doesn't exits",typeM)
 
@@ -69,10 +69,11 @@ class IOInterface():
         """An action is to be sent to the external Program
             [Handler] -> [externalP]
         """
+        dprint("Sending command {} with args {} to the pulse".format(name,args))
         try:
             self._listActionsIO[name](*args)
         except KeyError:
-            print(self._listActionsIO)
+            print(self._listActionsH)
             wprint("Can't send action request",name)
 
 class IOInterfacePulse(IOInterface):
@@ -393,10 +394,11 @@ class pulseController(object):
         except KeyError as e:
             wprint("An error occured while the pulse was processing order",e)
 
-    def layerCommand(self,layer,col,liveprev):
+    def layerCommand(self,screen,liveprev,layer,col):
         "Received a layer command from the handler, will now translate it for the pulse TODO: CLEAN THIS HORRENDOUS THING"
         dprint("Received command to change layer:{} to {} on {}(live/prev)".format(layer,col,liveprev))
-        self.returnInterface._IOInterface._externalProgram.changeLayer(0,liveprev,layer,col)
+        # self.returnInterface._IOInterface._externalProgram.changeLayer(screen,liveprev,layer,col)
+        # Do the actual color changing
         # .changeLayer()
 
     def layerPress(self,linecol,layer,val,liveprev):
@@ -407,7 +409,7 @@ class pulseController(object):
         truelinecol=(trueline,col)
         self.returnInterface.removeStatus((trueline,self.lastlayerpressed[layer]),"Selected")
         self.lastlayerpressed[layer]=col
-        self.returnInterface._IOInterface.sendAction("LAYERINP",layer,col,liveprev)
+        self.returnInterface._IOInterface.sendAction("LAYERINP",0,liveprev,layer,col)
         if liveprev==0:
             self.returnInterface.addStatus(truelinecol,"Selected")
         else:
