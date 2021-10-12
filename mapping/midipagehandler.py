@@ -34,29 +34,30 @@ class IOInterface():
         self._pageHandler=pagehandler
         self._listActionsH={}
         self._listActionsIO={}
-        self._pageHandler.IOInterface=self
+        self._pageHandler._IOInterface=self
         self._externalProgram=remoteController
 
-    def addActionH(self,matchName,action):
+    def addActionIO(self,matchName,action):
         """Associate a function to a match to a message received
             [externalP] -> Action -> [Handler]
         """
         self._listActionsH[matchName]=action
 
-    def addActionIO(self,name,action):
+    def addActionH(self,name,action):
         """Associate a function to match to a handler action
             [Handler] -> Action -> [externalP]
         """
         self._listActionsIO[name]=action
 
-    def messageReceived(self,messageMatch,note,*args):
+    def messageReceived(self,typeM,messageMatch,*args):
         """Acknoledge a message and do the appropriate actions
             [externalP] -> messageReceived -> Action -> [Handler]
         """
         try:
-            self._listActionsH[messageMatch.groups("msg")](messageMatch,note,*args)
+            dprint("Received the command {} from the pulse".format(messageMatch))
+            self._listActionsH[typeM](messageMatch,*args)
         except KeyError:
-            wprint("The message type doesn't exits",messageMatch)
+            wprint("The message type doesn't exits",typeM)
 
     def noteReceived(self,note,val):
         """Acknoledge a control received and do the appropriate actions
@@ -71,21 +72,25 @@ class IOInterface():
         try:
             self._listActionsIO[name](*args)
         except KeyError:
+            print(self._listActionsIO)
             wprint("Can't send action request",name)
 
 class IOInterfacePulse(IOInterface):
     "Specialised pulse interface"
 
-    def __init__(self,pagehandler,remoteController):
+    def __init__(self,pagehandler,pulseModule,remoteController):
         super(IOInterfacePulse,self).__init__(pagehandler,remoteController)
-        self.addActionIO("STATUS",self._externalProgram.getStatus)
+        self._pulseModule=pulseModule
+        # Commands that should be sent to the pulse
         self.addActionIO("LAYERINP",self._externalProgram.changeLayer)
         self.addActionIO("TAKEALL",self._externalProgram.takeAll)
         self.addActionIO("LOADMM",self._externalProgram.loadMM)
         self.addActionIO("QUICKF",self._externalProgram.quickFrame)
         self.addActionIO("FREEZE",self._externalProgram.freezeScreenAll)
 
-        self.addActionH("LAYERINP",self._pageHandler.layerCommand)    
+        # Command that are received from the pulse
+        self.addActionH("LAYERINP",self._pulseModule.layerCommand)
+        # self.addActionH("DETECTED",self._pulseModule.detected)
 
 class midiPageHandler(object):
     "Page Handler, with some methods to manage a midi remote more easily"
@@ -99,7 +104,7 @@ class midiPageHandler(object):
         self._changedbasevalues=[] # Store the active values, not yet updated
         self._heightV=0
         self._widthV=0
-        self.IOInterface=None
+        self._IOInterface=None
         self.newListChanges()
         self._listPossibleValues={None:0b0}
         self.possibleStatus={}
@@ -358,21 +363,19 @@ class midiPageHandler(object):
 
 class pulseController(object):
     "Receive controls over a specific range and map them to commands to send"
-    def __init__(self,IOInterface,returnInterface,ranges={j:j for j in range(3)}):
+    def __init__(self,returnInterface,ranges={j:j for j in range(3)}):
         self.ranges=ranges
         self.retunRanges={i:j for j,i in ranges.items()}
         _ALL_MESSAGE_TYPES=[
             "STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"
         ]
         self.returnInterface=returnInterface
-        self.IOInterface=IOInterface
         self.output=None
         self.poslastpressed=(0,0)
         self.idlastlayerpressed=0
         self.lastlayerpressed=[0,0]
         self.idlastmemorypressed=0
         self.offset=0   # Offset on the lines
-
 
     def pressReceived(self,linecol,val):
         "Received an order from the controller, the order must be associated with an actual command and send it to the IOController"
@@ -390,19 +393,21 @@ class pulseController(object):
         except KeyError as e:
             wprint("An error occured while the pulse was processing order",e)
 
-    def layerCommand(self,match):
-        "Received a layer command from the pulse, should be the only controller"
-        pass
+    def layerCommand(self,layer,col,liveprev):
+        "Received a layer command from the handler, will now translate it for the pulse TODO: CLEAN THIS HORRENDOUS THING"
+        dprint("Received command to change layer:{} to {} on {}(live/prev)".format(layer,col,liveprev))
+        self.returnInterface._IOInterface._externalProgram.changeLayer(0,liveprev,layer,col)
+        # .changeLayer()
 
     def layerPress(self,linecol,layer,val,liveprev):
-        "Adjust the color and info depending on the press"
+        "Adjust the color and info depending on the press" # Bound to dissapear
         self.idlastlayerpressed=layer
         line,col=linecol
         trueline=self.retunRanges[line]
         truelinecol=(trueline,col)
         self.returnInterface.removeStatus((trueline,self.lastlayerpressed[layer]),"Selected")
         self.lastlayerpressed[layer]=col
-        self.IOInterface.sendAction("LAYERINP",layer,col,liveprev)
+        self.returnInterface._IOInterface.sendAction("LAYERINP",layer,col,liveprev)
         if liveprev==0:
             self.returnInterface.addStatus(truelinecol,"Selected")
         else:
@@ -417,7 +422,7 @@ class pulseController(object):
         # self.removeStatus((line,self.idlastmemorypressed),"Selected")
         # self.idlastmemorypressed=col
         # self.addStatus(linecol,"Selected")
-        self.IOInterface.sendAction("LOADMM",col,liveprev)
+        self._IOInterface.sendAction("LOADMM",col,liveprev)
         # self.applyChanges()
         # self.applyColors()
 
@@ -476,16 +481,16 @@ class AkaiAPCMini(midiPageHandler):
         line,col=self._noteToPos[note]
         try:
             self.listModules[self._page][line].pressReceived((line,col),val)
-        except Exception as e:
+        except AttributeError as e:
             wprint("No module loaded for Line {line}: {e}".format(line=line,e=e))
             wprint("List of modules available on page {page} is : {modules}".format(page=self._page,modules=self.listModules[self._page]))
 
     def addModule(self,rackmodule,rangeActive):
         "Add a module to the controller, the range of control must be specified"
-        module=rackmodule(self.IOInterface,self,{i:j for i,j in zip(rangeActive,range(len(rangeActive)))})
-        print({i:j for i,j in zip(rangeActive,range(len(rangeActive)))})
+        module=rackmodule(self,{i:j for i,j in zip(rangeActive,range(len(rangeActive)))})
         for i in rangeActive:
             self.listModules[self._page][i]=module
+        return module
 
     def addInterfaceOut(self,interfaceOut):
         "Add one interface to send midi messages to, could be done another way"

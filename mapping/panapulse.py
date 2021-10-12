@@ -53,12 +53,23 @@ def _onload(self):
     "Send a reset colors"
     import time,sys
     HOSTS=[["127.0.0.1",3000]] # Test server
-    ctrl1=bindings.analogController(*HOSTS[0])
-    ctrl1.connectionSequence()
-    #ctrl1.keepPinging()
+    # The socket remote controller
+    controllerPulse=bindings.analogController(*HOSTS[0])
+
+    # Adding the midi interface to the controller
     handler.addInterfaceOut(self.interfaceOut(1))
-    IOInterface=midiPageHandler.IOInterface(handler,ctrl1)
-    handler.addModule(midiPageHandler.pulseController,[4,1,2])
+
+    # The pulse module, bound to 3 lines
+    modulePulse=handler.addModule(midiPageHandler.pulseController,[4,1,2])
+
+    # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
+    IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse)
+    
+    # Finishing initialising the controller (Should be done in a thread to avoid locking)
+    controllerPulse.addFeedbackInterface(IOInterface)
+    controllerPulse.connectionSequence()
+    #controllerPulse.keepPinging()
+    
     
 def pagepress(trigger,val,note,*params):
     "A key was pressed on the pagebuttons area"

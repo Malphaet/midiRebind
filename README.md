@@ -52,4 +52,6 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * TODO: General decorators @armtake
 
 * URGENT : Fix the connection issue
+* TODO: More explicit midi output/input connection error (and backup or exit)
+* TODO: CLEAN CONNECTION TO A RACK, ANYTHING BUT THIS CLUSTERF*CK
 * TODO: Connect the IOHandler with handler, binding and vice-versa, check some.
