@@ -57,8 +57,8 @@ def _onload(self):
     "Send a reset colors"
     import time,sys
     try:
-        # HOSTS=[["127.0.0.1",3000]] # Test server
-        HOSTS=[["192.168.0.140",10500]] # Test server
+        HOSTS=[["127.0.0.1",3000]] # Test server
+        #HOSTS=[["192.168.0.140",10500]] # Test server
         
         # The socket remote controller
         controllerPulse=bindings.analogController(*HOSTS[0])
