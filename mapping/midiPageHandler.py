@@ -488,9 +488,9 @@ class AkaiAPCMini(midiPageHandler):
         }
 
         self.listModules=[[None]*8] # Only one page and 8x8 for now
-        # self.pulse1=pulseController(self,IOInterface)
+        
         ###########
-        # For debug purposes
+        # For debug purposes coloring all neutral to be able to skip initialisation
         for j in range(5):
             for i in range(8):
                 self.addStatus((j,i),"Inactive")
@@ -534,10 +534,11 @@ class AkaiAPCMini(midiPageHandler):
     def lightnote(self,note,val=1):
         self.output.send(mido.Message("note_on",note=note,velocity=val))
 
-
     def receiveAction(self,action,*args,**kwargs):
         "Receive an action from the pulse and transmit it to the handler"
         dprint("ACTION TO BE HANDLED",action,args,kwargs)
+        # Do the changing of the light if layer press etc.
+        # Only hard part is knowing where
 
 _TEST=True
 if __name__ == '__main__':

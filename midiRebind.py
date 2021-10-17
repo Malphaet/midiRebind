@@ -1,19 +1,14 @@
-#!/bin/python3
 
-import mido, argparse, sys
+import mido, argparse, sys,os
 import configparser,importlib,mapping
 import traceback
+import platform
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Listen to a midi interface for incomming messages and send messages to different midi interfaces according to a patch file')
-
-    parser.add_argument('patch', type=str,help='The patch file, this file is mandatory')
-    parser.add_argument('--verbose', action='store_true',default=False,help='Make the program verbose)')
-
-    args = parser.parse_args()
-
+def launchWithArgs(args):
     try:
-        path="patch/{}.ini".format(args.patch)
+        local=os.path.dirname(__file__)
+        path=os.path.join(local,"patch","{}.ini".format(args.patch))
+        print(path)
         conf=configparser.ConfigParser()
         conf.read(path)
         interpath="mapping.{}".format(conf["interface"]["mapping"])
@@ -65,4 +60,20 @@ if __name__ == '__main__':
         print("[Error] Can't iterate over an empty list, check the list of inputs for an available input")
         print(e)
         traceback.print_exc()
-    # except:
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Listen to a midi interface for incomming messages and send messages to different midi interfaces according to a patch file')
+
+    parser.add_argument('patch', type=str,help='The patch file, this file is mandatory')
+    parser.add_argument('--verbose', action='store_true',default=False,help='Make the program verbose)')
+
+    
+
+    if len(sys.argv)==1:
+        agv=[__file__,"panapulsewin"]
+    else:
+        agv=sys.argv
+
+    args = parser.parse_args(agv[1:])
+
+    launchWithArgs(args)
