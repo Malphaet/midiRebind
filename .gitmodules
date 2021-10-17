@@ -7,3 +7,6 @@
 [submodule "pythonAnalogWay"]
 	path = pythonAnalogWay
 	url = git@github.com:Malphaet/pythonAnalogWay.git
+[submodule "pyUsage"]
+	path = pyUsage
+	url = git@github.com:Malphaet/pyUsage.git

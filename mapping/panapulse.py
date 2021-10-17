@@ -61,7 +61,7 @@ def pagepress(trigger,val,note,*params):
     try:
         pos=handler._noteToPos[note]
         #,handler._posToNote[pos[0],pos[1]]
-        dprint("Received {} (note:{})".format(pos,note)
+        dprint("Received {} (note:{})".format(pos,note))
 
     except TypeError as e:
         eprint("[Error] : Unassigned pagebutton {} - Note {:2} ({:3})".format(trigger,note,val))
