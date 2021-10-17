@@ -5,6 +5,8 @@ from mapping.midi import MessageParse
 from mapping.midi import Actions
 import sys
 
+from mapping.utils import doublepress
+from pythonAnalogWay import bindings
 ###########################
 # FUNCTION DEFINES
 
@@ -53,6 +55,7 @@ class pulseLink(object):
 def _onload(self):
     "Send a reset colors"
     import time,sys
+<<<<<<< HEAD
     # handler.prettyPrint(handler._activebasevalues)
     #vars.output=self.outputs[vars.interface_nb]
 
@@ -63,11 +66,39 @@ def pagepress(trigger,val,note,*params):
         #,handler._posToNote[pos[0],pos[1]]
         dprint("Received {} (note:{})".format(pos,note))
 
+=======
+    HOSTS=[["127.0.0.1",3000]] # Test server
+    # The socket remote controller
+    controllerPulse=bindings.analogController(*HOSTS[0])
+
+    # Adding the midi interface to the controller
+    handler.addInterfaceOut(self.interfaceOut(1))
+
+    # The pulse module, bound to 3 lines
+    modulePulse=handler.addModule(midiPageHandler.pulseController,[4,1,2])
+
+    # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
+    IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse)
+    
+    # Finishing initialising the controller (Should be done in a thread to avoid locking)
+    controllerPulse.addFeedbackInterface(IOInterface)
+    controllerPulse.connectionSequence()
+    #controllerPulse.keepPinging()
+    
+    
+def pagepress(trigger,val,note,*params):
+    "A key was pressed on the pagebuttons area"
+    try:
+        # print(handler._noteToPos[note])
+        handler.noteReceived(note,val)
+>>>>>>> 24c2b19a5859b51b3f1036f08524b130635161c1
     except TypeError as e:
         eprint("[Error] : Unassigned pagebutton {} - Note {:2} ({:3})".format(trigger,note,val))
         eprint(e)
 
+@doublepress
 def quitpress(trigger,val,note,*params):
+    # handler.
     print("Quitting...")
     sys.exit()
 

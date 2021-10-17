@@ -1,7 +1,7 @@
 #!/bin/python3
 ###########################
 # IMPORTS
-
+import mido
 ###########################
 # FUNCTION DEFINES
 
@@ -29,42 +29,70 @@ if _VERBOSE>=4:
 
 ###########################
 # CLASS DEFINES
-class lightHandler():
-    def __init__(self,statusList,listAssociations):
-        self.page=0
-        self.output=None
-        self.statusList={}
-        self.statusAssociation={}
-        self.lastpress=(None,None) #Does only account for the 8x8
-        self.selected_pulse=(None,None)
-        self.live_pulse=(None,None)
-        self.addStatusList(statusList)
-        self.initialiseColor()
-        self.associateColor(listAssociations)
+class IOInterface():
+    "Handle the IO actions between an external script and a midiPageHandler interface"
+    def __init__(self,pagehandler,remoteController):
+        self._pageHandler=pagehandler
+        self._listActionsH={}
+        self._listActionsIO={}
+        self._pageHandler._IOInterface=self
+        self._externalProgram=remoteController
 
-    def addStatusList(self,statusList):
-        'Add a list of status'
-        self.statusList=statusList
-        self.maxStatus=max(self.statusList.values())
+    def addActionIO(self,matchName,action):
+        """Associate a function to a match to a message received
+            [externalP] -> Action -> [Handler]
+        """
+        self._listActionsIO[matchName]=action
 
-    def initialiseColor(self,default=0):
-        "Initialise the the colorstatus"
-        for status in range(self.maxStatus*2-1):
-            self.statusAssociation[status]=default
+    def addActionH(self,name,action):
+        """Associate a function to match to a handler action
+            [Handler] -> Action -> [externalP]
+        """
+        self._listActionsH[name]=action
 
-    def associateColor(self,listAssociations):
-        "Associate a status combination with a color"
-        for status,color in listAssociations.items():
-            self.statusAssociation[status]=color
+    def messageReceived(self,typeM,messageMatch,*args):
+        """Acknoledge a message and do the appropriate actions
+            [externalP] -> messageReceived -> Action -> [Handler]
+        """
+        try:
+            dprint("Received the command {} from the pulse ({})".format(typeM,messageMatch))
+            self._listActionsIO[typeM](messageMatch,*args)
+        except KeyError:
+            wprint("The message type doesn't exits",typeM)
 
-    def lightcolor(self,col,row,color):
-        self.light(col,row,val=_COLORS[color])
+    def noteReceived(self,note,val):
+        """Acknoledge a control received and do the appropriate actions
+            [internalMidiAction] -> [Handler]
+        """
+        self.handler.noteReceived(note,val)
 
-    def light(self,col,row,val=1):
-        self.lightnote(self.findit(col,row),val)
+    def sendAction(self,name,*args):
+        """An action is to be sent to the external Program
+            [Handler] -> [externalP]
+        """
+        dprint("Sending command {} with args {} to the pulse".format(name,args))
+        try:
+            self._listActionsIO[name](*args)
+        except KeyError:
+            print(self._listActionsH)
+            wprint("Can't send action request",name)
 
-    def lightnote(self,note,val=1):
-        self.output.send(mido.Message("note_on",note=note,velocity=val))
+class IOInterfacePulse(IOInterface):
+    "Specialised pulse interface"
+
+    def __init__(self,pagehandler,pulseModule,remoteController):
+        super(IOInterfacePulse,self).__init__(pagehandler,remoteController)
+        self._pulseModule=pulseModule
+        # Commands that should be sent to the pulse
+        self.addActionIO("LAYERINP",self._externalProgram.changeLayer)
+        self.addActionIO("TAKEALL",self._externalProgram.takeAll)
+        self.addActionIO("LOADMM",self._externalProgram.loadMM)
+        self.addActionIO("QUICKF",self._externalProgram.quickFrame)
+        self.addActionIO("FREEZE",self._externalProgram.freezeScreenAll)
+
+        # Command that are received from the pulse
+        self.addActionH("LAYERINP",self._pulseModule.layerCommand)
+        # self.addActionH("DETECTED",self._pulseModule.detected)
 
 class midiPageHandler(object):
     "Page Handler, with some methods to manage a midi remote more easily"
@@ -78,8 +106,10 @@ class midiPageHandler(object):
         self._changedbasevalues=[] # Store the active values, not yet updated
         self._heightV=0
         self._widthV=0
-        self._changes=set()
+        self._IOInterface=None
+        self.newListChanges()
         self._listPossibleValues={None:0b0}
+        self.possibleStatus={}
         self.__maxV=0b1
         self._page=0
         self._maxpages=pages
@@ -87,6 +117,22 @@ class midiPageHandler(object):
         self._makeNotes(table)
         self.initValues()
 
+    ###################
+    # Important methods for Access
+    def addStatusPos(self,statusName,linecol,page=None):
+        "Apply a status to a position, applied when applyChanges is called"
+
+    def getColorPos(self,linecol):
+        "Get the active color from a position"
+
+    def listNoteChanges(self):
+        "Yield the list of (note,value) to update"
+        for pos in self.listChanges():
+            yield self.posToNote(pos),self.colorFrom(pos)
+
+    def noteReceived(self,note,val):
+        "A note has been received, do the appropriate actions"
+        pass
     ####################
     # Manage attributes
     def _makeNotes(self,table):
@@ -128,6 +174,15 @@ class midiPageHandler(object):
             self.__maxV*=2
             return True
 
+    # def makeAssociationTable(self):
+    #     "Make a table to contain all associations"
+    #     self.statusList=statusList
+    #     self.maxStatus=max(self.statusList.values())
+        # for status in range(self.maxStatus*2-1):
+        #     self.statusAssociation[status]=default
+    # def addAssociation(self,status,color):
+    #     "Add an association of status and color, must be used after makeAssociationTable"
+
     def listStatus(self):
         "Return the list of all values"
         return self._listPossibleValues
@@ -140,9 +195,10 @@ class midiPageHandler(object):
     ####################
     # Page Changes
     def changePage(self,page):
-        "Try to change page"
+        "Try to change page, warning all pending changes will be lost"
         try:
             self._activebasevalues=self._basevalues[page]
+            self.newListChanges()
             self.newChangedValues()
             self._redrawPageChange(self._page,page)
             self._page=page
@@ -170,7 +226,6 @@ class midiPageHandler(object):
             if self._changedbasevalues[i][j]!=self._activebasevalues[i][j]:
                 self.addChange((i,j))
 
-
     ####################
     # Modifiers methods
 
@@ -182,12 +237,19 @@ class midiPageHandler(object):
             return 0
         return self._listPossibleValues[namestatus]
 
-    def addStatuses(self,linecol,status):
-        "Add a status by name to a position"
-        for status in status:
+    # def addStatus(self,linecol,status):
+    #     "Add a status by name to a position"
+    #     self.addStatusId(linecol,self.statusId(status))
+
+    def addStatus(self,linecol,*statuses):
+        "Add a list of statuses by name to a position"
+        # if type(statuses)==str:
+        #     self.addStatusId(linecol,self.statusId(statuses))
+        for status in statuses:
             self.addStatusId(linecol,self.statusId(status))
 
-    def removeStatuses(self,linecol,liststatus):
+
+    def removeStatus(self,linecol,*liststatus):
         "Remove a list of status, by name"
         for status in liststatus:
             self.removeStatusId(linecol,self.statusId(status))
@@ -219,12 +281,26 @@ class midiPageHandler(object):
         for change in self._changes:
             yield change
 
+    def newListChanges(self):
+        "Add a new list of changes"
+        self._changes=set()
+
     def applyChanges(self):
         "Apply all changes and erase them, then reload another _changedbasevalues"
         for i,j in self.listChanges():
             self._activebasevalues[i][j]=self._changedbasevalues[i][j]
-        self._changes=set()
+        #self.newListChanges()
 
+    def colorFrom(self,linecol):
+        "Obtain color from the linecol"
+        return (self.possibleStatus[self.getTableElt(self._activebasevalues,linecol)])
+
+    def posToNote(self,linecol):
+        return self.noteFrom(linecol)
+
+    def noteFrom(self,linecol):
+        "Obtain note from the linecol"
+        return self.getTableElt(self._posToNote,linecol)
 
     ######################
     # Table utilities
@@ -252,6 +328,7 @@ class midiPageHandler(object):
         "Change a column to a specific list of values (No notifications)"
         for i in range(len(values)):
             table[i][col]=values[i]
+
 
     ####################
     # Operator definitions
@@ -286,6 +363,76 @@ class midiPageHandler(object):
                     print(" "+lineM.format(*elt))
         print(sep)
 
+
+class pulseController(object):
+    "Receive controls over a specific range and map them to commands to send"
+    def __init__(self,returnInterface,ranges={j:j for j in range(3)}):
+        self.ranges=ranges
+        self.retunRanges={i:j for j,i in ranges.items()}
+        _ALL_MESSAGE_TYPES=[
+            "STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"
+        ]
+        self.returnInterface=returnInterface
+        self.output=None
+        self.poslastpressed=(0,0)
+        self.idlastlayerpressed=0
+        self.lastlayerpressed=[0,0]
+        self.idlastmemorypressed=0
+        self.offset=0   # Offset on the lines
+
+    def pressReceived(self,linecol,val):
+        "Received an order from the controller, the order must be associated with an actual command and send it to the IOController"
+        try:
+            line,col=linecol
+            trueline=self.ranges[line]
+            if trueline==0: # It's a press on layer A
+                self.layerPress((trueline,col),trueline,val,0)
+            elif trueline==1: # It's a press on layer B
+                self.layerPress((trueline,col),trueline,val,0)
+            elif trueline==2: # It's a memory press
+                self.memoryPress((trueline,col),val,0)
+            else:
+                pass # The pulse only takes 3 lines
+        except KeyError as e:
+            wprint("An error occured while the pulse was processing order",e)
+
+    def layerCommand(self,screen,liveprev,layer,col):
+        "Received a layer command from the handler, will now translate it for the pulse TODO: CLEAN THIS HORRENDOUS THING"
+        dprint("Received command to change layer:{} to {} on {}(live/prev)".format(layer,col,liveprev))
+        # self.returnInterface._IOInterface._externalProgram.changeLayer(screen,liveprev,layer,col)
+        # Do the actual color changing
+        # .changeLayer()
+
+    def layerPress(self,linecol,layer,val,liveprev):
+        "Adjust the color and info depending on the press" # Bound to dissapear
+        self.idlastlayerpressed=layer
+        line,col=linecol
+        trueline=self.retunRanges[line]
+        truelinecol=(trueline,col)
+        self.returnInterface.removeStatus((trueline,self.lastlayerpressed[layer]),"Selected")
+        self.lastlayerpressed[layer]=col
+        self.returnInterface._IOInterface.sendAction("LAYERINP",0,liveprev,layer,col)
+        if liveprev==0:
+            self.returnInterface.addStatus(truelinecol,"Selected")
+        else:
+            self.returnInterface.addStatus(truelinecol,"Live")
+        self.returnInterface.applyChanges() 
+        self.returnInterface.applyColors()
+
+    def memoryPress(self,linecol,val,liveprev):
+        """Adjust the color and info of a memory press (take or preview)
+        Should be Green if defined and Yellow if not, selecting makes it prev"""
+        line,col=linecol
+        # self.removeStatus((line,self.idlastmemorypressed),"Selected")
+        # self.idlastmemorypressed=col
+        # self.addStatus(linecol,"Selected")
+        self._IOInterface.sendAction("LOADMM",col,liveprev)
+        # self.applyChanges()
+        # self.applyColors()
+
+    def __repr__(self):
+        return("PulseController{} ({self.idlastlayerpressed},{self.idlastmemorypressed})".format(list(self.ranges.keys()),self=self))
+
 class AkaiAPCMini(midiPageHandler):
     "A specific implementation of the page handler"
 
@@ -296,7 +443,7 @@ class AkaiAPCMini(midiPageHandler):
 
         self.colors={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
         self.addPossibleValues(("Inactive","Active","Selected","Live"))
-        _INACTIVE,_ACTIVE,_LIVE,_SELECTED=self.statusId("Inactive"),self.statusId("Active"),self.statusId("Selected"),self.statusId("Live")
+        _INACTIVE,_ACTIVE,_LIVE,_SELECTED=self.statusId("Inactive"),self.statusId("Active"),self.statusId("Live"),self.statusId("Selected")
 
         self.possibleStatus={
             0:                          self.colors["black"],
@@ -317,23 +464,68 @@ class AkaiAPCMini(midiPageHandler):
             _ACTIVE|_LIVE|_SELECTED:    self.colors["blinking_red"],
             _ACTIVE|_INACTIVE|_LIVE:    self.colors["blinking_red"], #Just live active
             _ACTIVE|_INACTIVE|_SELECTED:self.colors["blinking_green"], #Just selected active
-            _INACTIVE|_LIVE|_SELECTED:    self.colors["blinking_red"], # Very debatable
+            _INACTIVE|_LIVE|_SELECTED:  self.colors["blinking_red"], # Very debatable
 
             _ACTIVE|_LIVE|_INACTIVE|_SELECTED:self.colors["blinking_red"] #Just live active selected
         }
 
-        self.colorHandler=lightHandler(self.listStatus(),self.possibleStatus)
-        # self.changePage(0)
+        self.listModules=[[None]*8] # Only one page and 8x8 for now
+        # self.pulse1=pulseController(self,IOInterface)
+        ###########
+        # For debug purposes
+        for j in range(5):
+            for i in range(8):
+                self.addStatus((j,i),"Inactive")
+        
+        for j in range(5,8):
+            for i in range(8):
+                self.addStatus((j,i),None)
+
+    def noteReceived(self,note,val):
+        line,col=self._noteToPos[note]
+        try:
+            self.listModules[self._page][line].pressReceived((line,col),val)
+        except AttributeError as e:
+            wprint("No module loaded for Line {line}: {e}".format(line=line,e=e))
+            wprint("List of modules available on page {page} is : {modules}".format(page=self._page,modules=self.listModules[self._page]))
+
+    def addModule(self,rackmodule,rangeActive):
+        "Add a module to the controller, the range of control must be specified"
+        module=rackmodule(self,{i:j for i,j in zip(rangeActive,range(len(rangeActive)))})
+        for i in rangeActive:
+            self.listModules[self._page][i]=module
+        return module
+
+    def addInterfaceOut(self,interfaceOut):
+        "Add one interface to send midi messages to, could be done another way"
+        self.output=interfaceOut
+        self.applyChanges()
+        self.applyColors()
+
+    def applyColors(self):
+        'Apply all the colorchanges'
+        for note,val in self.listNoteChanges():
+            self.lightnote(note,val)
+
+    def lightcolor(self,col,row,color):
+        self.light(col,row,val=_COLORS[color])
+
+    def light(self,col,row,val=1):
+        self.lightnote(self.findit(col,row),val)
+
+    def lightnote(self,note,val=1):
+        self.output.send(mido.Message("note_on",note=note,velocity=val))
+
+
 
 _TEST=True
 if __name__ == '__main__':
     ak=AkaiAPCMini()
     ak.prettyPrint(ak._posToNote)
 
-    # ak.addPossibleValues(("Inactive","Active","Selected","Live"))
     for i,v in ak._listPossibleValues.items():
         print("{}:{:b}".format(i,v))
-    ak.addStatuses((2,1),("Active","Selected","Live"))
+    ak.addStatus((2,1),"Active","Selected","Live")
     ak.addStatusId((5,5),ak.statusId("Active"))
     ak.addStatusId((5,5),ak.statusId("Selected"))
     ak.addStatusId((5,7),ak.statusId("Live"))
@@ -347,9 +539,30 @@ if __name__ == '__main__':
     ak.prettyPrint(ak._changedbasevalues)
     ak.removeStatusId((2,1),ak.statusId("Live"))
     ak.prettyPrint(ak._changedbasevalues)
-    ak.removeStatuses((5,5),("Active","Selected"))
+    ak.removeStatus((5,5),"Active","Selected")
     ak.prettyPrint(ak._changedbasevalues)
 
     print(ak.statusId(("Active","Selected","Live")))
+<<<<<<< HEAD:mapping/midiPageHandler.py
     # ak.
     # light=lightHandler(ak.listStatus(),{})
+=======
+
+    ak.addStatus((3,3),"Active")
+    ak.addStatus((3,3),"Active")
+    ak.removeStatus((3,3),"Active")
+    ak.removeStatus((3,3),"Active")
+    ak.addStatus((3,3),"Active","Selected")
+    ak.removeStatus((3,3),"Active")
+    ak.addStatus((3,3),"Active","Live")
+    ak.removeStatus((3,3),"Live")
+    ak.prettyPrint(ak._changedbasevalues)
+    ak.prettyPrint(ak._activebasevalues)
+    ak.applyChanges()
+    ak.prettyPrint(ak._activebasevalues)
+    print(ak._changes)
+
+    for note,val in ak.listNoteChanges():
+        print (note,val)
+    print(ak.colorFrom((3,3)),ak.noteFrom((3,3)))
+>>>>>>> 24c2b19a5859b51b3f1036f08524b130635161c1:mapping/midipagehandler.py
