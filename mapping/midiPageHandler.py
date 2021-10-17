@@ -400,11 +400,13 @@ class pulseController(object):
             trueline=self.ranges[line]
             if trueline==0: # It's a press on layer A
                 self.layerPress((trueline,col),trueline,val,1)
+                print("L1")
             elif trueline==1: # It's a press on layer B
                 self.layerPress((trueline,col),trueline,val,1)
                 print("L2")
             elif trueline==2: # It's a memory press
                 self.memoryPress((trueline,col),val,0)
+                print('MM')
             else:
                 pass # The pulse only takes 3 lines
         except KeyError as e:
