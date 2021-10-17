@@ -40,17 +40,17 @@ class IOInterface():
 
     def addActionIO(self,matchName,action):
         """Associate a function to a match to a message received
-            [externalP] -> Action -> [Handler]
+            [Handler] -> Action -> [externalP]
         """
         self._listActionsIO[matchName]=action
 
     def addActionH(self,name,action):
         """Associate a function to match to a handler action
-            [Handler] -> Action -> [externalP]
+            [externalP] -> Action -> [Handler]
         """
         self._listActionsH[name]=action
 
-    def messageReceived(self,typeM,messageMatch,*args):
+    def receiveAction(self,typeM,messageMatch,*args):
         """Acknoledge a message and do the appropriate actions
             [externalP] -> messageReceived -> Action -> [Handler]
         """
@@ -59,8 +59,9 @@ class IOInterface():
             self._listActionsIO[typeM](messageMatch,*args)
         except KeyError:
             wprint("The message type doesn't exits",typeM)
+        self._pageHandler.sendAction(typeM,messageMatch,*args)
 
-    def noteReceived(self,note,val):
+    def receiveNote(self,note,val):
         """Acknoledge a control received and do the appropriate actions
             [internalMidiAction] -> [Handler]
         """
@@ -89,10 +90,21 @@ class IOInterfacePulse(IOInterface):
         self.addActionIO("LOADMM",self._externalProgram.loadMM)
         self.addActionIO("QUICKF",self._externalProgram.quickFrame)
         self.addActionIO("FREEZE",self._externalProgram.freezeScreenAll)
+        self.addActionIO("SCRNUPD",self._externalProgram.updateFinishedAll)
 
         # Command that are received from the pulse
         self.addActionH("LAYERINP",self._pulseModule.layerCommand)
         # self.addActionH("DETECTED",self._pulseModule.detected)
+
+    def receiveMessage(self,command,*args,**kwargs):
+        """A message was received from the pulse and will be redirected to the controller
+        """
+        self._pageHandler.receiveAction(command,*args,**kwargs)
+
+    def receiveCommand(self,command,*args,**kwargs):
+        "A message was received from the handler and will be redirected to the pulse"
+        self._externalProgram.receiveMessage(command,*args,**kwargs)
+
 
 class midiPageHandler(object):
     "Page Handler, with some methods to manage a midi remote more easily"
@@ -133,6 +145,7 @@ class midiPageHandler(object):
     def noteReceived(self,note,val):
         "A note has been received, do the appropriate actions"
         pass
+
     ####################
     # Manage attributes
     def _makeNotes(self,table):
@@ -386,9 +399,10 @@ class pulseController(object):
             line,col=linecol
             trueline=self.ranges[line]
             if trueline==0: # It's a press on layer A
-                self.layerPress((trueline,col),trueline,val,0)
+                self.layerPress((trueline,col),trueline,val,1)
             elif trueline==1: # It's a press on layer B
-                self.layerPress((trueline,col),trueline,val,0)
+                self.layerPress((trueline,col),trueline,val,1)
+                print("L2")
             elif trueline==2: # It's a memory press
                 self.memoryPress((trueline,col),val,0)
             else:
@@ -409,13 +423,15 @@ class pulseController(object):
         line,col=linecol
         trueline=self.retunRanges[line]
         truelinecol=(trueline,col)
-        self.returnInterface.removeStatus((trueline,self.lastlayerpressed[layer]),"Selected")
-        self.lastlayerpressed[layer]=col
-        self.returnInterface._IOInterface.sendAction("LAYERINP",0,liveprev,layer,col)
-        if liveprev==0:
-            self.returnInterface.addStatus(truelinecol,"Selected")
+        if liveprev==1:
+            color="Selected"
         else:
-            self.returnInterface.addStatus(truelinecol,"Live")
+            color="Live"
+        self.returnInterface.removeStatus((trueline,self.lastlayerpressed[layer]),color)
+        self.returnInterface.addStatus(truelinecol,color)
+        self.lastlayerpressed[layer]=col
+        self.returnInterface._IOInterface.sendAction("LAYERINP",0,liveprev,layer,col+1) # TODO : Clean this step
+        self.returnInterface._IOInterface.sendAction("SCRNUPD") 
         self.returnInterface.applyChanges() 
         self.returnInterface.applyColors()
 
@@ -517,6 +533,9 @@ class AkaiAPCMini(midiPageHandler):
         self.output.send(mido.Message("note_on",note=note,velocity=val))
 
 
+    def receiveAction(self,action,*args,**kwargs):
+        "Receive an action from the pulse and transmit it to the handler"
+        dprint("ACTION TO BE HANDLED",action,args,kwargs)
 
 _TEST=True
 if __name__ == '__main__':
@@ -543,10 +562,6 @@ if __name__ == '__main__':
     ak.prettyPrint(ak._changedbasevalues)
 
     print(ak.statusId(("Active","Selected","Live")))
-<<<<<<< HEAD:mapping/midiPageHandler.py
-    # ak.
-    # light=lightHandler(ak.listStatus(),{})
-=======
 
     ak.addStatus((3,3),"Active")
     ak.addStatus((3,3),"Active")
@@ -565,4 +580,3 @@ if __name__ == '__main__':
     for note,val in ak.listNoteChanges():
         print (note,val)
     print(ak.colorFrom((3,3)),ak.noteFrom((3,3)))
->>>>>>> 24c2b19a5859b51b3f1036f08524b130635161c1:mapping/midipagehandler.py

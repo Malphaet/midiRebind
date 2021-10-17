@@ -32,6 +32,7 @@ if _VERBOSE>=3:
 if _VERBOSE>=4:
     ddprint=printl("[mPH:DDEBUG]")
 
+
 _COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow":5,"blinking_yellow":6}
 
 #################################################
@@ -55,46 +56,40 @@ class pulseLink(object):
 def _onload(self):
     "Send a reset colors"
     import time,sys
-<<<<<<< HEAD
-    # handler.prettyPrint(handler._activebasevalues)
-    #vars.output=self.outputs[vars.interface_nb]
-
-def pagepress(trigger,val,note,*params):
-    "A key was pressed on the pagebuttons area"
     try:
-        pos=handler._noteToPos[note]
-        #,handler._posToNote[pos[0],pos[1]]
-        dprint("Received {} (note:{})".format(pos,note))
+        # HOSTS=[["127.0.0.1",3000]] # Test server
+        HOSTS=[["192.168.0.140",10500]] # Test server
+        
+        # The socket remote controller
+        controllerPulse=bindings.analogController(*HOSTS[0])
 
-=======
-    HOSTS=[["127.0.0.1",3000]] # Test server
-    # The socket remote controller
-    controllerPulse=bindings.analogController(*HOSTS[0])
+        # Adding the midi interface to the controller
+        handler.addInterfaceOut(self.interfaceOut(1))
 
-    # Adding the midi interface to the controller
-    handler.addInterfaceOut(self.interfaceOut(1))
+        # The pulse module, bound to 3 lines
+        modulePulse=handler.addModule(midiPageHandler.pulseController,[4,1,2])
 
-    # The pulse module, bound to 3 lines
-    modulePulse=handler.addModule(midiPageHandler.pulseController,[4,1,2])
+        # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
+        IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse)
+        
+        # Finishing initialising the controller (Should be done in a thread to avoid locking)
+        controllerPulse.addFeedbackInterface(IOInterface)
+        controllerPulse.connectionSequence()
+        #controllerPulse.keepPinging()
+    except ConnectionRefusedError:
+        eprint("The connection to the pulse failed, check your settings and try again ({})".format(HOSTS))
 
-    # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
-    IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse)
-    
-    # Finishing initialising the controller (Should be done in a thread to avoid locking)
-    controllerPulse.addFeedbackInterface(IOInterface)
-    controllerPulse.connectionSequence()
-    #controllerPulse.keepPinging()
-    
     
 def pagepress(trigger,val,note,*params):
     "A key was pressed on the pagebuttons area"
     try:
         # print(handler._noteToPos[note])
         handler.noteReceived(note,val)
->>>>>>> 24c2b19a5859b51b3f1036f08524b130635161c1
     except TypeError as e:
         eprint("[Error] : Unassigned pagebutton {} - Note {:2} ({:3})".format(trigger,note,val))
         eprint(e)
+    except SystemExit as e:
+        eprint("The Pulse requested a SystemExit (likely due to a connection interrupted), please check your settings")
 
 @doublepress
 def quitpress(trigger,val,note,*params):

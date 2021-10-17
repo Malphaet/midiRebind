@@ -9,6 +9,10 @@ from random import randint
 def dprint(message):
     pass
 
+class ModuleLoadingError(Exception):
+    def __init__(self,*args,**kwargs):
+        pass
+
 class BasicMidiInterface(object):
     "Basic midi interface"
     def __init__(self,configfile):

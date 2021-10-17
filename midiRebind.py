@@ -2,7 +2,7 @@
 
 import mido, argparse, sys
 import configparser,importlib,mapping
-
+import traceback
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Listen to a midi interface for incomming messages and send messages to different midi interfaces according to a patch file')
@@ -47,15 +47,22 @@ if __name__ == '__main__':
                 print("[Unexpected error@midibind.py] {}".format(sys.exc_info()))
     except ImportError as e:
         print("[Error] There was an error loading module {} ({})".format(interpath,e))
+        traceback.print_exc()
     except KeyError as e:
         print("[Error] There was an error while loading patch {} ({})".format(path,e))
+        traceback.print_exc()
     except KeyboardInterrupt:
         print("[Keyboard Interrupt] : Exiting...")
         sys.exit()
+    except ConnectionRefusedError as e:
+        print("A connection was refused during the execution of the program and remained uncatched")
+        traceback.print_exc()
     except OSError as e:
         print('[Error] The patch "patch/{}.ini" is ill-formed or non-existent'.format(args.patch))
         print(e)
+        traceback.print_exc()
     except TypeError as e:
         print("[Error] Can't iterate over an empty list, check the list of inputs for an available input")
         print(e)
+        traceback.print_exc()
     # except:

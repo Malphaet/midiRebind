@@ -50,13 +50,9 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * TODO: Pagehandler: make a note handler
 * TODO: Color management, get colors associated to all statuses
 * TODO: General decorators @armtake
-<<<<<<< HEAD
-* TODO: Do a cleaner page printl
-* TODO: Do all page tests
-=======
 
 * URGENT : Fix the connection issue
 * TODO: More explicit midi output/input connection error (and backup or exit)
 * TODO: CLEAN CONNECTION TO A RACK, ANYTHING BUT THIS CLUSTERF*CK
 * TODO: Connect the IOHandler with handler, binding and vice-versa, check some.
->>>>>>> 24c2b19a5859b51b3f1036f08524b130635161c1
+* TODO : Clean this step : Do a better IO handler
