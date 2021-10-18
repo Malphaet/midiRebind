@@ -7,17 +7,15 @@ import mido
 
 _VERBOSE=4
 
-nopeF=lambda x:None
+nopeF=lambda *x:None
 def printl(label=""):
     def _pl(*args):
         print(label,*args)
     return _pl
 
 eprint=printl("[mPH:ERROR]")
-dprint=nopeF
-ddprint=nopeF
-iprint=nopeF
-wprint=nopeF
+dprint,ddprint,iprint,wprint=nopeF,nopeF,nopeF,nopeF
+
 if _VERBOSE>=1:
     wprint=printl("[mPH:WARNING]")
 if _VERBOSE>=2:
@@ -31,12 +29,12 @@ if _VERBOSE>=4:
 # CLASS DEFINES
 class IOInterface():
     "Handle the IO actions between an external script and a midiPageHandler interface"
-    def __init__(self,pagehandler,remoteController):
+    def __init__(self,pagehandler,externalProgram):
         self._pageHandler=pagehandler
         self._listActionsH={}
         self._listActionsIO={}
         self._pageHandler._IOInterface=self
-        self._externalProgram=remoteController
+        self._externalProgram=externalProgram
 
     def addActionIO(self,matchName,action):
         """Associate a function to a match to a message received
@@ -78,31 +76,38 @@ class IOInterface():
             print(self._listActionsH)
             wprint("Can't send action request",name)
 
+    def toHandler(self,commandname,*args,**kwargs):
+        "Send directly an action to the handler"
+        self._pageHandler.receiveAction(commandname,*args,**kwargs)
+
+    def toExternalProgram(self,commandname,*args,**kwargs):
+        "Send directly a message to the pulse"
+        self._externalProgram.receiveCommand(commandname,*args,**kwargs)
+
 class IOInterfacePulse(IOInterface):
     "Specialised pulse interface"
 
-    def __init__(self,pagehandler,pulseModule,remoteController):
-        super(IOInterfacePulse,self).__init__(pagehandler,remoteController)
+    def __init__(self,pagehandler,pulseModule,externalProgram):
+        super(IOInterfacePulse,self).__init__(pagehandler,externalProgram)
         self._pulseModule=pulseModule
         # Commands that should be sent to the pulse
-        self.addActionIO("LAYERINP",self._externalProgram.changeLayer)
-        self.addActionIO("TAKEALL",self._externalProgram.takeAll)
-        self.addActionIO("LOADMM",self._externalProgram.loadMM)
-        self.addActionIO("QUICKF",self._externalProgram.quickFrame)
-        self.addActionIO("FREEZE",self._externalProgram.freezeScreenAll)
-        self.addActionIO("SCRNUPD",self._externalProgram.updateFinishedAll)
-
-        # Command that are received from the pulse
-        self.addActionH("LAYERINP",self._pulseModule.layerCommand)
-        # self.addActionH("DETECTED",self._pulseModule.detected)
+        # self.addActionIO("LAYERINP",self._externalProgram.changeLayer)
+        # self.addActionIO("TAKEALL",self._externalProgram.takeAll)
+        # self.addActionIO("LOADMM",self._externalProgram.loadMM)
+        # self.addActionIO("QUICKF",self._externalProgram.quickFrame)
+        # self.addActionIO("FREEZE",self._externalProgram.freezeScreenAll)
+        # self.addActionIO("SCRNUPD",self._externalProgram.updateFinishedAll)
 
     def receiveMessage(self,command,*args,**kwargs):
         """A message was received from the pulse and will be redirected to the controller
         """
-        self._pageHandler.receiveAction(command,*args,**kwargs)
+        dprint("Using RM/Forb")
+        # self._pageHandler.receiveAction(command,*args,**kwargs)
+        self._pulseModule.receiveCommand(command,*args,**kwargs)
 
     def receiveCommand(self,command,*args,**kwargs):
         "A message was received from the handler and will be redirected to the pulse"
+        dprint("Using RC/Forb")
         self._externalProgram.receiveMessage(command,*args,**kwargs)
 
 
@@ -377,11 +382,11 @@ class midiPageHandler(object):
         print(sep)
 
 
-class pulseController(object):
-    "Receive controls over a specific range and map them to commands to send"
+class pulseRackController(object):
+    """Receive controls over a specific range and map them to commands to send"""
     def __init__(self,returnInterface,ranges={j:j for j in range(3)}):
         self.ranges=ranges
-        self.retunRanges={i:j for j,i in ranges.items()}
+        self.returnRanges={i:j for j,i in ranges.items()}
         _ALL_MESSAGE_TYPES=[
             "STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"
         ]
@@ -394,62 +399,73 @@ class pulseController(object):
         self.offset=0   # Offset on the lines
 
     def pressReceived(self,linecol,val):
-        "Received an order from the controller, the order must be associated with an actual command and send it to the IOController"
+        """Received an order from the controller, the order must be associated 
+        with an actual command and send it to the IOController"""
         try:
             line,col=linecol
             trueline=self.ranges[line]
             if trueline==0: # It's a press on layer A
-                self.layerPress((trueline,col),trueline,val,1)
-                print("L1")
+                self.sendLayerInp(0,1,trueline+1,col+1)
+                # print("L1")
             elif trueline==1: # It's a press on layer B
-                self.layerPress((trueline,col),trueline,val,1)
-                print("L2")
+                self.sendLayerInp(0,1,trueline+1,col+1)
+                # print("L2")
             elif trueline==2: # It's a memory press
-                self.memoryPress((trueline,col),val,0)
-                print('MM')
+                self.sendMemoryChange(col,0)
+                # print('MM')
             else:
                 pass # The pulse only takes 3 lines
         except KeyError as e:
-            wprint("An error occured while the pulse was processing order",e)
+            wprint("An error occured while the pulse rack module was processing order",e)
 
-    def layerCommand(self,screen,liveprev,layer,col):
-        "Received a layer command from the handler, will now translate it for the pulse TODO: CLEAN THIS HORRENDOUS THING"
-        dprint("Received command to change layer:{} to {} on {}(live/prev)".format(layer,col,liveprev))
-        # self.returnInterface._IOInterface._externalProgram.changeLayer(screen,liveprev,layer,col)
-        # Do the actual color changing
-        # .changeLayer()
+    def receiveCommand(self,command,match,*args,**kwargs):
+        "Received a command from the external program"
+        dprint("Received a command from the external program",command)
+        if command=="LAYERINP":
+            self.receiveLayerInp(match)
+        elif command=="DETECTED":
+            self.receiveDetected(match)
 
-    def layerPress(self,linecol,layer,val,liveprev):
-        "Adjust the color and info depending on the press" # Bound to dissapear
-        self.idlastlayerpressed=layer
-        line,col=linecol
-        trueline=self.retunRanges[line]
-        truelinecol=(trueline,col)
-        if liveprev==1:
+    def sendLayerInp(self,screen,liveprev,layer,idinput):
+        """Send a message to the pulse: Layer input change
+            screen: 0
+            liveprev: 0 Live / 1 Prev
+            layer: 0(Frame) 1Pip1 2Pip2
+            idinput: 0(Black) 1Input1 etc..
+        """
+        self.returnInterface._IOInterface.toExternalProgram("LAYERINP",screen,liveprev,layer,idinput) 
+        self.returnInterface._IOInterface.toExternalProgram("SCRNUPD")
+
+    def receiveLayerInp(self,match):
+        "Received a message from the Pulse: Layer input was changed"
+        screen,ProgPrev,layer,src=[int(i) for i in match.group("postargs").split(",")]
+        theorical_line=layer-1 # The line it should be if it was indexed at 0
+        self.idlastlayerpressed=theorical_line
+        realline=self.returnRanges[theorical_line] # The actual line on the handler
+        realsrc=src-1
+        if ProgPrev==0:
             color="Selected"
         else:
             color="Live"
-        self.returnInterface.removeStatus((trueline,self.lastlayerpressed[layer]),color)
-        self.returnInterface.addStatus(truelinecol,color)
-        self.lastlayerpressed[layer]=col
-        self.returnInterface._IOInterface.sendAction("LAYERINP",0,liveprev,layer,col+1) # TODO : Clean this step
-        self.returnInterface._IOInterface.sendAction("SCRNUPD") 
+        self.returnInterface.removeStatus((realline,self.lastlayerpressed[theorical_line]),color)
+        self.returnInterface.addStatus((realline,realsrc),color)
+        self.lastlayerpressed[theorical_line]=realsrc
+        
         self.returnInterface.applyChanges() 
         self.returnInterface.applyColors()
 
-    def memoryPress(self,linecol,val,liveprev):
+    def receiveDetected(self,match):
+        "An input is detected on a position, update the controller"
+
+    def sendMemoryChange(self,memory,liveprev):
         """Adjust the color and info of a memory press (take or preview)
-        Should be Green if defined and Yellow if not, selecting makes it prev"""
-        line,col=linecol
-        # self.removeStatus((line,self.idlastmemorypressed),"Selected")
-        # self.idlastmemorypressed=col
-        # self.addStatus(linecol,"Selected")
-        self._IOInterface.sendAction("LOADMM",col,liveprev)
-        # self.applyChanges()
-        # self.applyColors()
+        Should be Green if defined and Yellow if not, selecting makes it prev
+        screenF,memory,screenT,ProgPrev,filter
+        """
+        self.returnInterface._IOInterface.toExternalProgram("LOADMM",0,memory,0,liveprev,0)
 
     def __repr__(self):
-        return("PulseController{} ({self.idlastlayerpressed},{self.idlastmemorypressed})".format(list(self.ranges.keys()),self=self))
+        return("PulseRackController{} ({self.idlastlayerpressed},{self.idlastmemorypressed})".format(list(self.ranges.keys()),self=self))
 
 class AkaiAPCMini(midiPageHandler):
     "A specific implementation of the page handler"
@@ -534,9 +550,9 @@ class AkaiAPCMini(midiPageHandler):
     def lightnote(self,note,val=1):
         self.output.send(mido.Message("note_on",note=note,velocity=val))
 
-    def receiveAction(self,action,*args,**kwargs):
-        "Receive an action from the pulse and transmit it to the handler"
-        dprint("ACTION TO BE HANDLED",action,args,kwargs)
+    # def receiveAction(self,action,*args,**kwargs):
+    #     "Receive an action from the pulse and transmit it to the handler"
+    #     dprint("ACTION TO BE HANDLED",action,args,kwargs)
         # Do the changing of the light if layer press etc.
         # Only hard part is knowing where
 

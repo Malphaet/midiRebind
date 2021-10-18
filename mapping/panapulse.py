@@ -12,17 +12,16 @@ from pythonAnalogWay import bindings
 
 _VERBOSE=4
 
-nopeF=lambda x:None
+nopeF=lambda *x:None
 def printl(label=""):
     def _pl(*args):
         print(label,*args)
     return _pl
 
 eprint=printl("[mPH:ERROR]")
-dprint=nopeF
-ddprint=nopeF
-iprint=nopeF
-wprint=nopeF
+dprint,ddprint,iprint,wprint=nopeF,nopeF,nopeF,nopeF
+bindings.dprint,bindings.ddprint,bindings.iprint=nopeF,nopeF,nopeF
+
 if _VERBOSE>=1:
     wprint=printl("[mPH:WARNING]")
 if _VERBOSE>=2:
@@ -61,20 +60,20 @@ def _onload(self):
         #HOSTS=[["192.168.0.140",10500]] # Test server
         
         # The socket remote controller
-        controllerPulse=bindings.analogController(*HOSTS[0])
+        controllerPulse1=bindings.analogController(*HOSTS[0])
 
         # Adding the midi interface to the controller
         handler.addInterfaceOut(self.interfaceOut(1))
 
         # The pulse module, bound to 3 lines
-        modulePulse=handler.addModule(midiPageHandler.pulseController,[4,1,2])
+        modulePulse=handler.addModule(midiPageHandler.pulseRackController,[4,1,2])
 
         # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
-        IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse)
+        IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse1)
         
         # Finishing initialising the controller (Should be done in a thread to avoid locking)
-        controllerPulse.addFeedbackInterface(IOInterface)
-        controllerPulse.connectionSequence()
+        controllerPulse1.addFeedbackInterface(IOInterface)
+        controllerPulse1.connectionSequence()
         #controllerPulse.keepPinging()
     except ConnectionRefusedError:
         eprint("The connection to the pulse failed, check your settings and try again ({})".format(HOSTS))

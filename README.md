@@ -58,3 +58,4 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 * TODO : Clean this step : Do a better IO handler
 * URGENT : Error on non existing patch is incorrect (win)
 * URGENT : line 341, in POSTMATCH_SCRNUPD /  if match.group("postargs")[-1]=="1" trigger out of range on incorrect formatted return args (no args)
+* TODO: Get rid of match.group("postargs").split
