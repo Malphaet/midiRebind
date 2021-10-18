@@ -443,7 +443,7 @@ class pulseRackController(object):
         self.idlastlayerpressed=theorical_line
         realline=self.returnRanges[theorical_line] # The actual line on the handler
         realsrc=src-1
-        if ProgPrev==0:
+        if ProgPrev==1:
             color="Selected"
         else:
             color="Live"
@@ -456,6 +456,7 @@ class pulseRackController(object):
 
     def receiveDetected(self,match):
         "An input is detected on a position, update the controller"
+        dprint("An input is detected by the handler",match)
 
     def sendMemoryChange(self,memory,liveprev):
         """Adjust the color and info of a memory press (take or preview)
