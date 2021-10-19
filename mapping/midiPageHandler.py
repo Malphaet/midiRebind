@@ -2,6 +2,7 @@
 ###########################
 # IMPORTS
 import mido
+from mapping.utils import doublepress
 ###########################
 # FUNCTION DEFINES
 
@@ -90,24 +91,16 @@ class IOInterfacePulse(IOInterface):
     def __init__(self,pagehandler,pulseModule,externalProgram):
         super(IOInterfacePulse,self).__init__(pagehandler,externalProgram)
         self._pulseModule=pulseModule
-        # Commands that should be sent to the pulse
-        # self.addActionIO("LAYERINP",self._externalProgram.changeLayer)
-        # self.addActionIO("TAKEALL",self._externalProgram.takeAll)
-        # self.addActionIO("LOADMM",self._externalProgram.loadMM)
-        # self.addActionIO("QUICKF",self._externalProgram.quickFrame)
-        # self.addActionIO("FREEZE",self._externalProgram.freezeScreenAll)
-        # self.addActionIO("SCRNUPD",self._externalProgram.updateFinishedAll)
 
     def receiveMessage(self,command,*args,**kwargs):
         """A message was received from the pulse and will be redirected to the controller
         """
-        dprint("Using RM/Forb")
-        # self._pageHandler.receiveAction(command,*args,**kwargs)
+        #dprint("Using RM/Forb")
         self._pulseModule.receiveCommand(command,*args,**kwargs)
 
     def receiveCommand(self,command,*args,**kwargs):
         "A message was received from the handler and will be redirected to the pulse"
-        dprint("Using RC/Forb")
+        #dprint("Using RC/Forb")
         self._externalProgram.receiveMessage(command,*args,**kwargs)
 
 
@@ -393,13 +386,16 @@ class pulseRackController(object):
         # dprint(self.returnByName,self.realByName)
         _ALL_MESSAGE_TYPES=["STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"]
         self._command_cols=["Black1","Black2","Freeze1","Freeze2",None,None,None,"TakeAll"]
-        self._command_colors=["Inactive","Inactive","Active","Active",None,None,None,"Live"]
+        self._command_colors=[("Inactive","Selected"),("Inactive","Selected"),"Active","Active",None,None,None,"Live"]
         self.commandPos={name:(self.returnByName["Commands"],i) for name,i in zip(self._command_cols,range(8))}
         self.returnInterface=returnInterface
         self.output=None
         self.poslastpressed=(0,0)
         self.idlastlayerpressed=[0,0] # Live/Prev
-        self.lastlayerpressed=[[0,0],[0,0]] # Live/preview : Layer1,Layer2
+        self.lastlayerpressed=[
+            [self.commandPos['Black1'],self.commandPos['Black2']], # Live : Layer1,Layer2
+            [self.commandPos['Black1'],self.commandPos['Black2']]  # Preview : Layer1,Layer2
+        ] 
         self.idlastmemorypressed=0
         self.offset=0   # Offset on the lines
 
@@ -441,17 +437,28 @@ class pulseRackController(object):
 
     def receiveCommand(self,command,match,*args,**kwargs):
         "Received a command from the external program"
-        dprint("Received a command from the external program",command,match)
+        dprint("Received [{}]: {}".format(command,match))
         if command=="LAYERINP":
             self.receiveLayerInp(match)
         elif command=="DETECTED":
             self.receiveDetected(match)
+        elif command=="TAKEALL":
+            self.receiveTakeAll(match)
+        elif command=="FREEZELAYER":
+            self.receiveFreeze(match)
+        elif command=="STATUS":
+            self.receiveStatus(match)
+
+    @doublepress
+    def takeAllProtect(self):
+        "TakaAll, double-press protected"
+        self.returnInterface._IOInterface.toExternalProgram("TAKEALL")
+        #print("Taking...")
 
     def specialPress(self,line,col):
         "Press on the special line"
-        print("SPECIAL ON PROGRESS",line,self._command_cols[col])
+        # print("SPECIAL ON PROGRESS",line,self._command_cols[col])
         command=self._command_cols[col]
-
         if command=="Black1":
             #"screen,liveprev,layer,idinput"
             self.returnInterface._IOInterface.toExternalProgram("LAYERINP",0,1,1,0)
@@ -460,23 +467,11 @@ class pulseRackController(object):
             self.returnInterface._IOInterface.toExternalProgram("LAYERINP",0,1,2,0)
             self.returnInterface._IOInterface.toExternalProgram("SCRNUPD")
         elif command=="TakeAll":
-            self.returnInterface._IOInterface.toExternalProgram("TAKEALL")
-        #{
-        #     0:black1,
-        #     1:black2,
-        #     3:freeze1,
-        #     4:freeze2,
-        #     6:takeAll,
-        # }
-        # if col==0: # It's a black1
-        #     pass
-        # elif col==1: # It's a black2
-        #     pass
-        # elif coll=3: # It's a 
-        # elif col==6: # It's a Freeze
-        #     pass
-        # elif col==7:
-        #     pass
+            self.takeAllProtect()
+        elif command=="Freeze1":
+            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",0,0) # Action is none, so it toggles, maybe
+        elif command=="Freeze2":
+            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",1,0) 
 
     def sendLayerInp(self,screen,liveprev,layer,idinput):
         """Send a message to the pulse: Layer input change
@@ -506,15 +501,34 @@ class pulseRackController(object):
             color=None
         #dprint("INPUT {src} is {st}({color}) on {scr}".format(src=src,st=ProgPrev,color=color,scr=layer))
 
-        self.returnInterface.removeStatus((realline,self.lastlayerpressed[ProgPrev][theorical_line]),color)
+        self.returnInterface.removeStatus(self.lastlayerpressed[ProgPrev][theorical_line],color)
         if realsrc!=-1: 
             self.returnInterface.addStatus((realline,realsrc),color)
-        else:
+            self.lastlayerpressed[ProgPrev][theorical_line]=(realline,realsrc)
+        else: # It's a black input
             self.returnInterface.addStatus((self.returnByName["Commands"],theorical_line),color)
-            realsrc=0 # It's a black input
-        self.lastlayerpressed[ProgPrev][theorical_line]=realsrc
+            self.lastlayerpressed[ProgPrev][theorical_line]=self.commandPos["Black"+str(theorical_line+1)] # Maybe     
         
         self.returnInterface.applyChanges() 
+        self.returnInterface.applyColors()
+
+    def receiveStatus(self,match):
+        "Status is being updated"
+        status=match.group("postargs")
+        if status=='0':
+            dprint("The configuration has finished loading")
+        else:
+            iprint("Status is being loaded from the Pulse...")
+
+    def receiveFreeze(self,match):
+        "Receive a freeze input"
+        layer,screen,action=match.group("postargs").split(",")
+        # print(self.commandPos["Freeze"+str(int(layer)+1)])
+        if action=="1": # Freezing ?
+            self.returnInterface.addStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Selected") # Probably, maybe layer+1
+        else:
+            self.returnInterface.removeStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Selected")
+        self.returnInterface.applyChanges()
         self.returnInterface.applyColors()
 
     def receiveDetected(self,match):

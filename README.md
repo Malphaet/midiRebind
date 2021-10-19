@@ -6,7 +6,7 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 # Depends
 * Mostly mido (pip install mido) for the midi binding and rtmidi (sudo apt install python-rtmidi)
 * test.py depends on the submodule minitest witch also depends on blessings (pip install blessings). test.py is not a core part of the program
-* This program is python3 compliant (as long as you install the python3 dependencies instead (pip3 install mido and install python3-rtmidi))
+* This program is python3 dependant (on linux you must install the python3 dependencies instead (pip3 install mido and install python3-rtmidi))
 
 # Config Syntax
 
@@ -53,9 +53,10 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
 
 * URGENT : Fix the connection issue
 * TODO: More explicit midi output/input connection error (and backup or exit)
-* TODO: CLEAN CONNECTION TO A RACK, ANYTHING BUT THIS CLUSTERF*CK
+* TODO: CLEAN CONNECTION TO A RACK, ANYTHING BUT THIS CLUSTERFCK
 * TODO: Connect the IOHandler with handler, binding and vice-versa, check some.
 * TODO : Clean this step : Do a better IO handler
 * URGENT : Error on non existing patch is incorrect (win)
 * URGENT : line 341, in POSTMATCH_SCRNUPD /  if match.group("postargs")[-1]=="1" trigger out of range on incorrect formatted return args (no args)
 * TODO: Get rid of match.group("postargs").split
+* TODO: clean the dprint("Using RM/Forb") and maybe rebind some of it
