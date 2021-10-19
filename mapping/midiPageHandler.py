@@ -525,9 +525,9 @@ class pulseRackController(object):
         layer,screen,action=match.group("postargs").split(",")
         # print(self.commandPos["Freeze"+str(int(layer)+1)])
         if action=="1": # Freezing ?
-            self.returnInterface.addStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Selected") # Probably, maybe layer+1
+            self.returnInterface.addStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Live") # Probably, maybe layer+1
         else:
-            self.returnInterface.removeStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Selected")
+            self.returnInterface.removeStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Live")
         self.returnInterface.applyChanges()
         self.returnInterface.applyColors()
 
