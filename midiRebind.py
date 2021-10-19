@@ -8,7 +8,6 @@ def launchWithArgs(args):
     try:
         local=os.path.dirname(__file__)
         path=os.path.join(local,"patch","{}.ini".format(args.patch))
-        print(path)
         conf=configparser.ConfigParser()
         conf.read(path)
         interpath="mapping.{}".format(conf["interface"]["mapping"])

@@ -20,7 +20,7 @@ def printl(label=""):
 
 eprint=printl("[mPH:ERROR]")
 dprint,ddprint,iprint,wprint=nopeF,nopeF,nopeF,nopeF
-bindings.dprint,bindings.ddprint,bindings.iprint=nopeF,nopeF,nopeF
+# bindings.dprint,bindings.ddprint,bindings.iprint=nopeF,nopeF,nopeF
 
 if _VERBOSE>=1:
     wprint=printl("[mPH:WARNING]")
@@ -56,8 +56,8 @@ def _onload(self):
     "Send a reset colors"
     import time,sys
     try:
-        HOSTS=[["127.0.0.1",3000]] # Test server
-        #HOSTS=[["192.168.0.140",10500]] # Test server
+        #HOSTS=[["127.0.0.1",3000]] # Test server
+        HOSTS=[["192.168.0.140",10500]] # Test server
         
         # The socket remote controller
         controllerPulse1=bindings.analogController(*HOSTS[0])
@@ -66,13 +66,14 @@ def _onload(self):
         handler.addInterfaceOut(self.interfaceOut(1))
 
         # The pulse module, bound to 3 lines
-        modulePulse=handler.addModule(midiPageHandler.pulseRackController,[4,1,2])
+        modulePulse1=handler.addModule(midiPageHandler.pulseRackController,[1,3,5])
 
         # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
-        IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse1)
+        IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse1,controllerPulse1)
         
         # Finishing initialising the controller (Should be done in a thread to avoid locking)
         controllerPulse1.addFeedbackInterface(IOInterface)
+        modulePulse1.initColorLines()
         controllerPulse1.connectionSequence()
         #controllerPulse.keepPinging()
     except ConnectionRefusedError:

@@ -398,6 +398,14 @@ class pulseRackController(object):
         self.idlastmemorypressed=0
         self.offset=0   # Offset on the lines
 
+    def initColorLines(self):
+        "Give an initial color the base lines"
+        for line in self.returnRanges.values():
+            for col in range(8):
+                self.returnInterface.addStatus((line,col),"Inactive")
+        self.returnInterface.applyChanges()
+        self.returnInterface.applyColors()
+
     def pressReceived(self,linecol,val):
         """Received an order from the controller, the order must be associated 
         with an actual command and send it to the IOController"""
@@ -508,13 +516,13 @@ class AkaiAPCMini(midiPageHandler):
         
         ###########
         # For debug purposes coloring all neutral to be able to skip initialisation
-        for j in range(5):
-            for i in range(8):
-                self.addStatus((j,i),"Inactive")
+        # for j in range(5):
+        #     for i in range(8):
+        #         self.addStatus((j,i),"Inactive")
         
-        for j in range(5,8):
-            for i in range(8):
-                self.addStatus((j,i),None)
+        # for j in range(8):
+        #     for i in range(8):
+        #         self.addStatus((j,i),None)
 
     def noteReceived(self,note,val):
         line,col=self._noteToPos[note]
