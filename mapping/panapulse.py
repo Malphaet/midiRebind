@@ -20,7 +20,7 @@ def printl(label=""):
 
 eprint=printl("[mPH:ERROR]")
 dprint,ddprint,iprint,wprint=nopeF,nopeF,nopeF,nopeF
-# bindings.dprint,bindings.ddprint,bindings.iprint=nopeF,nopeF,nopeF
+bindings.dprint,bindings.ddprint,bindings.iprint=nopeF,nopeF,nopeF
 
 if _VERBOSE>=1:
     wprint=printl("[mPH:WARNING]")

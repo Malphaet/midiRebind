@@ -387,14 +387,17 @@ class pulseRackController(object):
     def __init__(self,returnInterface,ranges={j:j for j in range(3)}):
         self.ranges=ranges
         self.returnRanges={i:j for j,i in ranges.items()}
+        self.lineNames=["Layer1","Layer2","MasterMemory"]#"Commands"
+        self.returnByName={i:j for i,j in zip(self.lineNames,ranges.values())}
+        self.realByName={i:j for i,j in zip(self.lineNames,ranges.keys())}
         _ALL_MESSAGE_TYPES=[
             "STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"
         ]
         self.returnInterface=returnInterface
         self.output=None
         self.poslastpressed=(0,0)
-        self.idlastlayerpressed=0
-        self.lastlayerpressed=[0,0]
+        self.idlastlayerpressed=[0,0] # Live/Prev
+        self.lastlayerpressed=[[0,0],[0,0]] # Live/preview : Layer1,Layer2
         self.idlastmemorypressed=0
         self.offset=0   # Offset on the lines
 
@@ -419,8 +422,13 @@ class pulseRackController(object):
                 self.sendLayerInp(0,1,trueline+1,col+1)
                 # print("L2")
             elif trueline==2: # It's a memory press
-                self.sendMemoryChange(col,0)
+                self.sendMemoryChange(col,1) # MEMORY TO PREVIEW
                 # print('MM')
+            # elif trueline==3: # It's a livememorypress
+            #     # @doublepress 
+            #     self.sendMemoryChange(col,0)
+            # elif trueline==3:
+            #     self.specialPress(trueline,col)
             else:
                 pass # The pulse only takes 3 lines
         except KeyError as e:
@@ -428,11 +436,30 @@ class pulseRackController(object):
 
     def receiveCommand(self,command,match,*args,**kwargs):
         "Received a command from the external program"
-        dprint("Received a command from the external program",command)
+        dprint("Received a command from the external program",command,match)
         if command=="LAYERINP":
             self.receiveLayerInp(match)
         elif command=="DETECTED":
             self.receiveDetected(match)
+
+    def specialPress(self,line,col):
+        "Press on the special line"
+        # _SPECIAL_COLONS={
+        #     0:black1,
+        #     1:black2,
+        #     3:freeze1,
+        #     4:freeze2,
+        #     6:takeAll,
+        # }
+        # if col==0: # It's a black1
+        #     pass
+        # elif col==1: # It's a black2
+        #     pass
+        # elif coll=3: # It's a 
+        # elif col==6: # It's a Freeze
+        #     pass
+        # elif col==7:
+        #     pass
 
     def sendLayerInp(self,screen,liveprev,layer,idinput):
         """Send a message to the pulse: Layer input change
@@ -448,23 +475,43 @@ class pulseRackController(object):
         "Received a message from the Pulse: Layer input was changed"
         screen,ProgPrev,layer,src=[int(i) for i in match.group("postargs").split(",")]
         theorical_line=layer-1 # The line it should be if it was indexed at 0
-        self.idlastlayerpressed=theorical_line
+        # dprint("LIVEPREV",screen,ProgPrev,theorical_line,src)
+        if theorical_line not in (0,1) or screen!=0 or ProgPrev not in (0,1):
+            return
+        self.idlastlayerpressed[ProgPrev]=theorical_line
         realline=self.returnRanges[theorical_line] # The actual line on the handler
         realsrc=src-1
         if ProgPrev==1:
             color="Selected"
-        else:
+        elif ProgPrev==0:
             color="Live"
-        self.returnInterface.removeStatus((realline,self.lastlayerpressed[theorical_line]),color)
-        self.returnInterface.addStatus((realline,realsrc),color)
-        self.lastlayerpressed[theorical_line]=realsrc
+        else:
+            color=None
+        #dprint("INPUT {src} is {st}({color}) on {scr}".format(src=src,st=ProgPrev,color=color,scr=layer))
+
+        self.returnInterface.removeStatus((realline,self.lastlayerpressed[ProgPrev][theorical_line]),color)
+        if realsrc!=-1: 
+            self.returnInterface.addStatus((realline,realsrc),color)
+        else:
+            realsrc=0 # It's a black input
+        self.lastlayerpressed[ProgPrev][theorical_line]=realsrc
         
         self.returnInterface.applyChanges() 
         self.returnInterface.applyColors()
 
     def receiveDetected(self,match):
         "An input is detected on a position, update the controller"
-        dprint("An input is detected by the handler",match)
+        src,plugtype,status=match.group("postargs").split(",")
+        dprint("An input is detected by the handler Layer:{},plugtype:{},status:{}".format(src,plugtype,status))
+        if status=='1':
+            for i in range(2):
+                self.returnInterface.addStatus((self.returnRanges[i],int(src)),"Active")
+        elif status=="0":
+            for i in range(2):
+                self.returnInterface.removeStatus((self.returnRanges[i],int(src)),"Active")
+        self.returnInterface.applyChanges()
+        self.returnInterface.applyColors()
+
 
     def sendMemoryChange(self,memory,liveprev):
         """Adjust the color and info of a memory press (take or preview)
@@ -505,7 +552,7 @@ class AkaiAPCMini(midiPageHandler):
             _ACTIVE|_INACTIVE:          self.colors["green"],#Just active
 
             _ACTIVE|_LIVE|_SELECTED:    self.colors["blinking_red"],
-            _ACTIVE|_INACTIVE|_LIVE:    self.colors["blinking_red"], #Just live active
+            _ACTIVE|_INACTIVE|_LIVE:    self.colors["red"], #Just live active
             _ACTIVE|_INACTIVE|_SELECTED:self.colors["blinking_green"], #Just selected active
             _INACTIVE|_LIVE|_SELECTED:  self.colors["blinking_red"], # Very debatable
 
