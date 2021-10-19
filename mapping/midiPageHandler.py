@@ -469,9 +469,9 @@ class pulseRackController(object):
         elif command=="TakeAll":
             self.takeAllProtect()
         elif command=="Freeze1":
-            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",0,0) # Action is none, so it toggles, maybe
+            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",0,1) # Action is none, so it toggles, maybe
         elif command=="Freeze2":
-            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",1,0) 
+            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",1,1) 
 
     def sendLayerInp(self,screen,liveprev,layer,idinput):
         """Send a message to the pulse: Layer input change
