@@ -64,9 +64,9 @@ def _onload(self):
 
         # Adding the midi interface to the controller
         handler.addInterfaceOut(self.interfaceOut(1))
-
+        time.sleep(0.2)
         # The pulse module, bound to 3 lines
-        modulePulse1=handler.addModule(midiPageHandler.pulseRackController,[1,3,5])
+        modulePulse1=handler.addModule(midiPageHandler.pulseRackController,[0,1,2,4])
 
         # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
         IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse1,controllerPulse1)

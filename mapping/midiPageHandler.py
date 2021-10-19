@@ -384,15 +384,17 @@ class midiPageHandler(object):
 
 class pulseRackController(object):
     """Receive controls over a specific range and map them to commands to send"""
-    def __init__(self,returnInterface,ranges={j:j for j in range(3)}):
+    def __init__(self,returnInterface,ranges={j:j for j in range(4)}):
         self.ranges=ranges
         self.returnRanges={i:j for j,i in ranges.items()}
-        self.lineNames=["Layer1","Layer2","MasterMemory"]#"Commands"
-        self.returnByName={i:j for i,j in zip(self.lineNames,ranges.values())}
-        self.realByName={i:j for i,j in zip(self.lineNames,ranges.keys())}
-        _ALL_MESSAGE_TYPES=[
-            "STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"
-        ]
+        self.lineNames=["Layer1","Layer2","MasterMemory","Commands"]
+        self.returnByName={i:j for i,j in zip(self.lineNames,ranges.keys())}
+        self.realByName={i:j for i,j in zip(self.lineNames,ranges.values())}
+        # dprint(self.returnByName,self.realByName)
+        _ALL_MESSAGE_TYPES=["STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"]
+        self._command_cols=["Black1","Black2","Freeze1","Freeze2",None,None,None,"TakeAll"]
+        self._command_colors=["Inactive","Inactive","Active","Active",None,None,None,"Live"]
+        self.commandPos={name:(self.returnByName["Commands"],i) for name,i in zip(self._command_cols,range(8))}
         self.returnInterface=returnInterface
         self.output=None
         self.poslastpressed=(0,0)
@@ -406,6 +408,9 @@ class pulseRackController(object):
         for line in self.returnRanges.values():
             for col in range(8):
                 self.returnInterface.addStatus((line,col),"Inactive")
+        for i in range(8):
+            self.returnInterface.removeStatus((self.returnByName["Commands"],i),"Inactive")
+            self.returnInterface.addStatus((self.returnByName["Commands"],i),self._command_colors[i])
         self.returnInterface.applyChanges()
         self.returnInterface.applyColors()
 
@@ -427,8 +432,8 @@ class pulseRackController(object):
             # elif trueline==3: # It's a livememorypress
             #     # @doublepress 
             #     self.sendMemoryChange(col,0)
-            # elif trueline==3:
-            #     self.specialPress(trueline,col)
+            elif trueline==3:
+                self.specialPress(trueline,col)
             else:
                 pass # The pulse only takes 3 lines
         except KeyError as e:
@@ -444,7 +449,19 @@ class pulseRackController(object):
 
     def specialPress(self,line,col):
         "Press on the special line"
-        # _SPECIAL_COLONS={
+        print("SPECIAL ON PROGRESS",line,self._command_cols[col])
+        command=self._command_cols[col]
+
+        if command=="Black1":
+            #"screen,liveprev,layer,idinput"
+            self.returnInterface._IOInterface.toExternalProgram("LAYERINP",0,1,1,0)
+            self.returnInterface._IOInterface.toExternalProgram("SCRNUPD")
+        elif command=="Black2":
+            self.returnInterface._IOInterface.toExternalProgram("LAYERINP",0,1,2,0)
+            self.returnInterface._IOInterface.toExternalProgram("SCRNUPD")
+        elif command=="TakeAll":
+            self.returnInterface._IOInterface.toExternalProgram("TAKEALL")
+        #{
         #     0:black1,
         #     1:black2,
         #     3:freeze1,
@@ -493,6 +510,7 @@ class pulseRackController(object):
         if realsrc!=-1: 
             self.returnInterface.addStatus((realline,realsrc),color)
         else:
+            self.returnInterface.addStatus((self.returnByName["Commands"],theorical_line),color)
             realsrc=0 # It's a black input
         self.lastlayerpressed[ProgPrev][theorical_line]=realsrc
         
@@ -566,10 +584,10 @@ class AkaiAPCMini(midiPageHandler):
         # for j in range(5):
         #     for i in range(8):
         #         self.addStatus((j,i),"Inactive")
-        
-        # for j in range(8):
-        #     for i in range(8):
-        #         self.addStatus((j,i),None)
+        for j in range(8):
+            for i in range(8):
+                self.addStatus((j,i),None)
+
 
     def noteReceived(self,note,val):
         line,col=self._noteToPos[note]
