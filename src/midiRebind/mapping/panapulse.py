@@ -1,12 +1,10 @@
 #!/bin/python3
-from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
-import mido
-from mapping.midi import MessageParse
-from mapping.midi import Actions
+from src.midiRebind.mapping.base import BasicMidiInterface
 import sys
 
-from mapping.utils import doublepress
-from pythonAnalogWay import bindings
+from src.midiRebind.mapping.utils import doublepress
+from src.pythonAnalogWay import bindings
+
 ###########################
 # FUNCTION DEFINES
 
@@ -20,7 +18,7 @@ def printl(label=""):
 
 eprint=printl("[mPH:ERROR]")
 dprint,ddprint,iprint,wprint=nopeF,nopeF,nopeF,nopeF
-bindings.dprint,bindings.ddprint,bindings.iprint=nopeF,nopeF,nopeF
+bindings.dprint, bindings.ddprint, bindings.iprint= nopeF, nopeF, nopeF
 
 if _VERBOSE>=1:
     wprint=printl("[mPH:WARNING]")
@@ -39,10 +37,10 @@ _COLORS={"black":0,"green":1,"blinking_green":2,"red":3,"blinking_red":4,"yellow
 ###
 
 # try:
-from mapping import midiPageHandler
+from src.midiRebind.mapping import midiPageHandler
 # except:
 #     from
-handler=midiPageHandler.AkaiAPCMini()
+handler= midiPageHandler.AkaiAPCMini()
 class pulseLink(object):
     """Link between lights, messages and states
     Receives messages from the pulse and adjust states"""
@@ -54,22 +52,21 @@ class pulseLink(object):
 
 def _onload(self):
     "Send a reset colors"
-    import time,sys
     try:
         HOSTS=[["127.0.0.1",3000]] # Test server
         #HOSTS=[["192.168.0.140",10500]] # Test server
         
         # The socket remote controller
-        controllerPulse1=bindings.analogController(*HOSTS[0])
+        controllerPulse1= bindings.analogController(*HOSTS[0])
 
         # Adding the midi interface to the controller
         handler.addInterfaceOut(self.interfaceOut(1))
 
         # The pulse module, bound to 3 lines
-        modulePulse=handler.addModule(midiPageHandler.pulseRackController,[4,1,2])
+        modulePulse=handler.addModule(midiPageHandler.pulseRackController, [4, 1, 2])
 
         # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
-        IOInterface=midiPageHandler.IOInterfacePulse(handler,modulePulse,controllerPulse1)
+        IOInterface= midiPageHandler.IOInterfacePulse(handler, modulePulse, controllerPulse1)
         
         # Finishing initialising the controller (Should be done in a thread to avoid locking)
         controllerPulse1.addFeedbackInterface(IOInterface)

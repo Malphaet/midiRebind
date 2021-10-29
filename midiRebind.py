@@ -1,17 +1,21 @@
-
-import mido, argparse, sys,os
-import configparser,importlib,mapping
+import argparse
+import configparser
+import importlib
+from src.midiRebind import mapping
+import os
+import sys
 import traceback
-import platform
+
 
 def launchWithArgs(args):
+    interpath,path = "", ""
     try:
         local=os.path.dirname(__file__)
-        path=os.path.join(local,"patch","{}.ini".format(args.patch))
+        path=os.path.join(local, "src/midiRebind/patch", "{}.ini".format(args.patch))
         print(path)
         conf=configparser.ConfigParser()
         conf.read(path)
-        interpath="mapping.{}".format(conf["interface"]["mapping"])
+        interpath="src.midiRebind.mapping.{}".format(conf["interface"]["mapping"])
 
         Module=importlib.import_module(interpath)
 

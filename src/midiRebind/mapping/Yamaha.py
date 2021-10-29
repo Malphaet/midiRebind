@@ -1,6 +1,4 @@
-from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
-import mido
-import re,configparser
+from src.midiRebind.mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
 
 commandlist={127:"DCA",55:"IN",84:"MIX",101:"MATRICE",115:"MASTER",336:"MASTER2",122:"PAGE",53:"MUTE",893:"CUE"}
 # Doc says 11 is go_off, test says otherwise

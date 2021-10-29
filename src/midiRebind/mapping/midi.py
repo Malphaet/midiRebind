@@ -1,6 +1,5 @@
-from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
-import mido
-import configparser,sys
+from src.midiRebind.mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
+import sys
 
 #A MessageParse object MUST be included in the file, the rest is implementation Specific
 class MessageParse(BasicMessageParse):

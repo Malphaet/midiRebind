@@ -1,9 +1,11 @@
 # This is the basic mapping of a midi message, all subsequent messages must either be children of this or implement those methods
 import configparser
-import mido,re
 from math import trunc
-from math import sin,cos,tan
-from random import randint
+
+import mido
+import re
+import sys
+
 #    import traceback
 #    print(traceback.print_stack())
 def dprint(message):
@@ -84,7 +86,7 @@ class BasicMessageParse(object):
 
     def __call__(self,message):
         """Take a midi SyxEx message and return a BasicAction (there can be many children of BasicAction to take more properly care of the cases)"""
-        return BasicMapping(self._mapping)
+        return BasicMapping(self._mapping) # TODO : Findout what this is
 
 class BasicActions(object):
     """The list of action to perform when a message is read"""
