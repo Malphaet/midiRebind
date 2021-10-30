@@ -6,7 +6,7 @@ from math import trunc
 import mido
 import re
 import sys
-
+# mypy: ignore-errors
 
 #    import traceback
 #    print(traceback.print_stack())

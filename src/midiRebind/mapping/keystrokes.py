@@ -1,4 +1,5 @@
 #!/bin/python3
+# mypy: ignore-errors
 
 #################################################
 # HARDCODED DEFINITIONS

@@ -1,4 +1,5 @@
 #!/bin/python3
+# mypy: ignore-errors
 
 # import pyautogui
 from src.midiRebind.mapping.base import BasicMidiInterface

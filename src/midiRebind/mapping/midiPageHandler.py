@@ -1,4 +1,6 @@
 #!/bin/python3
+# mypy: ignore-errors
+
 ###########################
 # IMPORTS
 import mido
@@ -291,7 +293,7 @@ class midiPageHandler(object):
         if (self._changedbasevalues[linecol[0]][linecol[1]] & statusId):
             self._changedbasevalues[linecol[0]][linecol[1]] -= statusId
 
-    def hasStatus(self, statusId):
+    def hasStatus(self, linecol, statusId):
         "Check if a status is present"
         if (self._changedbasevalues[linecol[0]][linecol[1]] & statusId):
             return True
@@ -393,7 +395,7 @@ class midiPageHandler(object):
 class pulseRackController(object):
     """Receive controls over a specific range and map them to commands to send"""
 
-    def __init__(self, returnInterface, ranges={j: j for j in range(3)}):
+    def __init__(self, returnInterface, ranges):
         self.ranges = ranges
         self.returnRanges = {i: j for j, i in ranges.items()}
         _ALL_MESSAGE_TYPES = [
@@ -560,7 +562,7 @@ class AkaiAPCMini(midiPageHandler):
             self.lightnote(note, val)
 
     def lightcolor(self, col, row, color):
-        self.light(col, row, val=_COLORS[color])
+        self.light(col, row, val=self.colors[color])
 
     def light(self, col, row, val=1):
         self.lightnote(self.findit(col, row), val)

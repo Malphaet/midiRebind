@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+
 from src.midiRebind.mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
 
 commandlist={127:"DCA",55:"IN",84:"MIX",101:"MATRICE",115:"MASTER",336:"MASTER2",122:"PAGE",53:"MUTE",893:"CUE"}
@@ -49,7 +51,7 @@ class Actions(BasicActions):
         "Make the link between the regex and the action"
         # print(int(match.command))
         action=commandlist[int(match.command)]
-        id,value="1","1"
+        id,value=1,1
         page=0 # Yamaha consoles don't use pages in a way that is relevant to us
         #"DCA",55:"IN",84:"MIX",101:"MATRICE",115:"MASTER",82:"MASTER2",51:"PAGE"
         if action in ["IN","MIX","MATRICE","MASTER","MASTER2"]:

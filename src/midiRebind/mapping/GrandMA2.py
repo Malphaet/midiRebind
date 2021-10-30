@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+
 from src.midiRebind.mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
 
 commandlist={1:"go",2:"stop",3:"resume",4:"timed_go",6:"set",7:"fire",10:"go_off"}
@@ -66,7 +68,7 @@ class Actions(BasicActions):
     def __call__(self,match):
         "Make the link between the regex and the action"
         action=commandlist[int(match.command)]
-        id,value="1","1"
+        id,value=1,1
         if action=="set":
             data=match.data
             page=int(data[1])
