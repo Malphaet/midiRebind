@@ -1,7 +1,8 @@
 #!/bin/python3
 
-import dearpygui.dearpygui as dpg
-from dearpygui.demo import show_demo
-
-show_demo()
-dpg.start_dearpygui()
+# import dearpygui.dearpygui as dpg
+# from dearpygui.demo import show_demo
+#
+# show_demo()
+# dpg.start_dearpygui()
+# #

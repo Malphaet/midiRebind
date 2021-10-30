@@ -1,1 +1,1 @@
-__all__ = ["mapping","midiRebind"]
+__all__ = ["mapping","pythonAnalogWay","panaremote","minitest"]

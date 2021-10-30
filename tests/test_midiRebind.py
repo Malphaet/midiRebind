@@ -2,7 +2,7 @@ import configparser
 
 import mido
 
-from src.minitest import minitest
+from src.midiRebind.minitest import minitest
 
 
 # from mapping import GrandMA2
@@ -13,12 +13,10 @@ class GmaPyTest(minitest.simpleTestUnit):
     def __init__(self):
         super(GmaPyTest, self).__init__("gmaPy")
 
-    def _testCustom(self):
+    def _test_custom(self):
         self.currentTest("testing true")
         if True:
             self.addSuccess()
-        else:
-            self.addFailure("True is False")
 
 
 class MappingTest(minitest.simpleTestUnit):
@@ -28,7 +26,7 @@ class MappingTest(minitest.simpleTestUnit):
         super(MappingTest, self).__init__("parsing/mapping")
         self.verbose = True
 
-    def _testParsing(self):
+    def _test_parsing(self):
         self.currentTest("Loading default mappings")
         from src.midiRebind.mapping import GrandMA2
         self.gm = GrandMA2
@@ -87,13 +85,13 @@ class MappingTest(minitest.simpleTestUnit):
                 print("| > testfunction used in test", params)
                 return 1
 
-            class Emptyconfig():
+            class Emptyconfig:
                 def __init__(self, configfile):
                     self.config = configparser.ConfigParser()
                     self.config.read(configfile)
                     self.functionlist = {"testfunction": testfunction}
 
-                def interfaceOut(self, nb):
+                def interface_out(self, nb):
                     class EmptySender():
                         def __init__(self):
                             self.name = "none:none"
@@ -113,7 +111,7 @@ class MappingTest(minitest.simpleTestUnit):
         # self.act.prettyprint()
         self.currentTest("Testing the request formatter")
         try:
-            setsect = self.act.findAction("set", "1", "1")
+            self.act.findAction("set", "1", "1")
             try:
                 self.act.findAction("set", "2", "3")
                 self.addFailure("Not supposed to load page 3")
@@ -209,7 +207,7 @@ class MappingTest(minitest.simpleTestUnit):
 
 
 def toDec(message):
-    "Taken care of by mido, but testing needs to be done otherwise"
+    """Taken care of by mido, but testing needs to be done otherwise"""
     res = []
     for hx in message.split(" "):
         if res == []:

@@ -1,9 +1,9 @@
-[submodule "minitest"]
-	path = src/minitest
-	url = https://github.com/Malphaet/minitest.git
-[submodule "panaremote"]
-	path = src/panaremote
-	url = git@github.com:Malphaet/panaremote.git
-[submodule "pythonAnalogWay"]
-	path = src/pythonAnalogWay
+[submodule "src/midiRebind/pythonAnalogWay"]
+	path = src/midiRebind/pythonAnalogWay
 	url = git@github.com:Malphaet/pythonAnalogWay.git
+[submodule "src/midiRebind/panaremote"]
+	path = src/midiRebind/panaremote
+	url = git@github.com:Malphaet/panaremote.git
+[submodule "src/midiRebind/minitest"]
+	path = src/midiRebind/minitest
+	url = git@github.com:Malphaet/minitest.git

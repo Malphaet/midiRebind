@@ -1,6 +1,6 @@
-import panaremote
 import midiRebind
-import pythonAnalogWay
+from midiRebind import panaremote, pythonAnalogWay
+
 
 def test_panaremote():
-    print(panaremote,midiRebind)
+    print(panaremote, midiRebind, pythonAnalogWay)
