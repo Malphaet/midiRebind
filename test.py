@@ -21,12 +21,12 @@ class mappingTest(minitest.simpleTestUnit):
         self.verbose=True
     def _testParsing(self):
         self.currentTest("Loading default mappings")
-        from mapping import GrandMA2
-        self.gm=GrandMA2
+        from src.midiRebind.mapping import GrandMA2
+        self.gm= GrandMA2
         self.addSuccess()
 
         self.currentTest("Creating Parser")
-        self.parser=GrandMA2.MessageParse()
+        self.parser= GrandMA2.MessageParse()
         self.addSuccess()
 
         self.currentTest("Testing hex2dec")
@@ -93,7 +93,7 @@ class mappingTest(minitest.simpleTestUnit):
                             pass
                     return EmptySender()
             self.e_config=Emptyconfig("patch/test.ini")
-            self.act=GrandMA2.Actions(self.e_config)
+            self.act= GrandMA2.Actions(self.e_config)
             self.addSuccess()
         except IOError:
             self.addFailure("Can't load config file")
@@ -211,7 +211,7 @@ class ConfigTest(minitest.simpleTestUnit):
 
     def _testAll(self):
         self.currentTest("Loading config")
-        from mapping import GrandMA2
+        from src.midiRebind.mapping import GrandMA2
         GrandMA2.MidiInterface("patch/test.ini")
         self.addSuccess()
 
@@ -221,19 +221,19 @@ class LiveTest(minitest.simpleTestUnit):
 
     def _testAll(self):
         self.currentTest("Loading config")
-        from mapping import GrandMA2
-        Inter=GrandMA2.MidiInterface("patch/test.ini")
+        from src.midiRebind.mapping import GrandMA2
+        Inter= GrandMA2.MidiInterface("patch/test.ini")
         self.addSuccess()
 
         self.currentTest("Loading message parser")
-        Par=GrandMA2.MessageParse()
+        Par= GrandMA2.MessageParse()
         self.addSuccess()
 
         self.currentTest("Loading Patch")
 
         # print(GrandMA2.Actions)
 
-        Acts=GrandMA2.Actions(Inter)
+        Acts= GrandMA2.Actions(Inter)
         self.addSuccess()
         #Act.prettyprint()
 

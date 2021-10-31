@@ -1,13 +1,8 @@
 #!/bin/python3
 
 # import pyautogui
-from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
+from src.midiRebind.mapping.base import BasicMidiInterface
 import mido
-import re,configparser
-import pyautogui
-
-from mapping.midi import MessageParse
-from mapping.midi import Actions
 
 PLUGGED=[0,0,1,0,0,0,1,0]
 

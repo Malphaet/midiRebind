@@ -1,16 +1,17 @@
 
-import mido, argparse, sys,os
-import configparser,importlib,mapping
+import argparse, sys,os
+import configparser,importlib
+from src.midiRebind import mapping
 import traceback
-import platform
+
 
 def launchWithArgs(args):
     try:
         local=os.path.dirname(__file__)
-        path=os.path.join(local,"patch","{}.ini".format(args.patch))
+        path=os.path.join(local, "src","midiRebind","patch", "{}.ini".format(args.patch))
         conf=configparser.ConfigParser()
         conf.read(path)
-        interpath="mapping.{}".format(conf["interface"]["mapping"])
+        interpath="src.midiRebind.mapping.{}".format(conf["interface"]["mapping"])
 
         Module=importlib.import_module(interpath)
 
@@ -40,7 +41,7 @@ def launchWithArgs(args):
             except:
                 print("[Unexpected error@midibind.py] {}".format(sys.exc_info()))
     except ImportError as e:
-        print("[Error] There was an error loading module {} ({})".format(interpath,e))
+        print("[Error] There was an error loading module {} ({}) ({})".format(interpath,path,e))
         traceback.print_exc()
     except KeyError as e:
         print("[Error] There was an error while loading patch {} ({})".format(path,e))

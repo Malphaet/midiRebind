@@ -2,7 +2,7 @@
 ###########################
 # IMPORTS
 import mido
-from mapping.utils import doublepress
+from src.midiRebind.mapping.utils import doublepress
 ###########################
 # FUNCTION DEFINES
 

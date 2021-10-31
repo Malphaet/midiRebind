@@ -11,12 +11,9 @@ __TESTING=False
 # IMPORTS
 ###
 
-from mapping.base import BasicMessageParse,BasicActions,MatchError,BasicMidiInterface
+from src.midiRebind.mapping.base import BasicMidiInterface
 import mido
-import re,configparser
-from panaremote import request as panarequest
-from mapping.midi import MessageParse
-from mapping.midi import Actions
+from src.midiRebind.panaremote import request as panarequest
 
 from threading import Timer
 
@@ -243,7 +240,6 @@ vars=demvars()
 
 def _onload(self):
     "Send a reset colors"
-    import time,sys
     vars.output=self.outputs[vars.interface_nb]
     #Load the remote control on some VPs
     loadVPs(_LIST_VPS)
