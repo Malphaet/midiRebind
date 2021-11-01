@@ -20,7 +20,7 @@ def printl(label=""):
 
 eprint=printl("[mPH:ERROR]")
 dprint,ddprint,iprint,wprint=nopeF,nopeF,nopeF,nopeF
-bindings.dprint, bindings.ddprint, bindings.iprint= nopeF, nopeF, nopeF
+# bindings.dprint, bindings.ddprint, bindings.iprint= nopeF, nopeF, nopeF
 
 if _VERBOSE>=1:
     wprint=printl("[mPH:WARNING]")
@@ -90,6 +90,7 @@ def pagepress(trigger,val,note,*params):
         eprint(e)
     except SystemExit as e:
         eprint("The Pulse requested a SystemExit (likely due to a connection interrupted), please check your settings")
+        sys.exit()
 
 @doublepress
 def quitpress(trigger,val,note,*params):
