@@ -26,37 +26,4 @@ To do so add a custom patch (or use a currently defined one, but chances are pat
     * 56/cond = lambda x: x==50 # Function choosing conditions on the value to send
     * 57/toggle = 0/127: Toggle the val between 127 and 0 every time the note is received
     * 68/func = functionMappedInTheMappingInterface(note,intensity,parameters)
-
-# Adding another mapping interface
-* TODO: Explain it better than just "look at the ones I made"
-
-# Improvements
-* Better note / cc / pc notation
-* Add Fade (in ms) from one value to another
-* Have a way to know last value for the note/cc (the last one sent/received)
-* Make toggles a function modifying a variable/state and sending result
-* Allow for a multi-in interfaces
-* TODO: More testing for null interface out
-* URGENT : /funct with an existing trigger might not work, should be with an empty trigger anyway.
-* Add asynchroneous mode ?
-* URGENT : Crash when assigning to an existing trigger
-* TODO: Make a @armtake decorator
-* TODO: Async and Disconnection protect for VPs
-* TODO: Disconnect: 'NoneType' object has no attribute 'groups' : Should handle disconnect & Crashes
-* TODO: Color and uncolor VP as it connects
-* TODO: Unified verbose printing & usage
-
-
-* TODO: Pagehandler: make a note handler
-* TODO: Color management, get colors associated to all statuses
-* TODO: General decorators @armtake
-
-* URGENT : Fix the connection issue
-* TODO: More explicit midi output/input connection error (and backup or exit)
-* TODO: CLEAN CONNECTION TO A RACK, ANYTHING BUT THIS CLUSTERFCK
-* TODO: Connect the IOHandler with handler, binding and vice-versa, check some.
-* TODO : Clean this step : Do a better IO handler
-* URGENT : Error on non existing patch is incorrect (win)
-* URGENT : line 341, in POSTMATCH_SCRNUPD /  if match.group("postargs")[-1]=="1" trigger out of range on incorrect formatted return args (no args)
-* TODO: Get rid of match.group("postargs").split
-* TODO: clean the dprint("Using RM/Forb") and maybe rebind some of it
+  
