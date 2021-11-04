@@ -422,6 +422,10 @@ class EmptyTrigger(BasicMidiTrigger):
         "No state to add"
         pass
 
+    def __repr__(self):
+        """An empty trigger"""
+        return "<ET>({self.note}:{self.parent})@{self.__name__}".format(self=self)
+
 class EmptyInterface(object):
     "An empty interface, to send empty messages"
 

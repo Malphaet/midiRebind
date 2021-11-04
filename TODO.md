@@ -1,3 +1,9 @@
+# Big list of big stuff to do
+* Move all projects/subprojects to src/
+* Make all tests
+* Clean up the code and the TODO
+* Make the code more readable
+* Create a keystrokes.py with all the keystrokes loaded from a config file
 
 # Adding another mapping interface
 * TODO: Explain it better than just "look at the ones I made"
@@ -12,12 +18,10 @@
 * URGENT : /funct with an existing trigger might not work, should be with an empty trigger anyway.
 * Add asynchronous mode ?
 * URGENT : Crash when assigning to an existing trigger
-* TODO: Make an @armtake decorator
 * TODO: Async and Disconnection protect for VPs
 * TODO: Disconnect: 'NoneType' object has no attribute 'groups' : Should handle disconnect & Crashes
 * TODO: Color and un-color VP as it connects
 * TODO: Unified verbose printing & usage
-
 
 * TODO: Pagehandler: make a note handler
 * TODO: Color management, get colors associated to all statuses
@@ -36,3 +40,5 @@
 * TODO: Sysexit not working
 * URGENT: Network interruption not working
 * TODO: Empty triggers should give a little more info
+* TODO: Clean up the whole IO handler
+
