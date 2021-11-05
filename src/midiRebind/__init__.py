@@ -1,1 +1,1 @@
-__all__=["mapping","panaremote","pythonAnalogWay"]
+__all__ = ["mapping", "panaremote", "pythonAnalogWay"]

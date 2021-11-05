@@ -1,4 +1,4 @@
-import midiRebind
+pytimport midiRebind
 from midiRebind import panaremote, pythonAnalogWay
 
 
