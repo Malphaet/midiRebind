@@ -41,4 +41,6 @@
 * URGENT: Network interruption not working
 * TODO: Empty triggers should give a little more info
 * TODO: Clean up the whole IO handler
-
+* TODO: Quickframe & Frames
+* TODO: Fix Fakeserver reconnect/linux
+* TODO: Pycharm linux dependecies
