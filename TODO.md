@@ -44,3 +44,4 @@
 * TODO: Quickframe & Frames
 * TODO: Fix Fakeserver reconnect/linux
 * TODO: Pycharm linux dependecies
+* TODO: Sync Freeze with toggle
