@@ -450,6 +450,8 @@ class pulseRackController(object):
             self.receiveStatus(match)
         elif command=="QUICKF":
             self.receiveQuickframe(match)
+        elif command=="FRAME":
+            self.receiveFrame(match)
 
     @doublepress
     def takeAllProtect(self):
@@ -536,6 +538,11 @@ class pulseRackController(object):
             self.returnInterface.removeStatus(self.commandPos["Freeze"+str(int(screen))],"Live")
         self.returnInterface.applyChanges()
         self.returnInterface.applyColors()
+
+    def receiveFrame(self,match):
+        "Receive a Frame change"
+        screen,frame,action=match.group("postargs").split(",")
+        print("Frame change",screen,frame,action)
 
     def receiveDetected(self,match):
         "An input is detected on a position, update the controller"
