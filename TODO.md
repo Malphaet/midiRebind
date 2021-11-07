@@ -14,9 +14,9 @@
 * Make toggles a function modifying a variable/state and sending result
 * Allow for a multi-in interfaces
 * TODO: More testing for null interface out
-* URGENT : /funct with an existing trigger might not work, should be with an empty trigger anyway.
+* URGENT : /func with an existing trigger might not work, should be with an empty trigger anyway.
 * Add asynchronous mode ?
-* URGENT : Crash when assigning to an existing trigger
+* **URGENT** : Crash when assigning to an existing trigger
 * TODO: Async and Disconnection protect for VPs
 * TODO: Disconnect: 'NoneType' object has no attribute 'groups' : Should handle disconnect & Crashes
 * TODO: Color and un-color VP as it connects
@@ -26,21 +26,20 @@
 * TODO: Color management, get colors associated to all statuses
 * TODO: General decorators @armtake
 
-* URGENT : Fix the connection issue
+* **URGENT** : Fix the connection issue
 * TODO: More explicit midi output/input connection error (and backup or exit)
 * TODO: CLEAN CONNECTION TO A RACK, ANYTHING BUT THIS CLUSTERF*CK
 * TODO: Connect the IOHandler with handler, binding and vice-versa, check some.
 * TODO : Clean this step : Do a better IO handler
-* URGENT : Error on non-existing patch is incorrect (win)
-* URGENT : line 341, in POSTMATCH_SCRNUPD /  if match.group("postargs")[-1]=="1" trigger out of range on incorrect formatted return args (no args)
+* **URGENT** : Error on non-existing patch is incorrect (win)
+* **URGENT** : line 341, in POSTMATCH_SCRNUPD /  if match.group("postargs")[-1]=="1" trigger out of range on incorrect formatted return args (no args)
 * TODO: Get rid of match.group("postargs").split
 * TODO: Asyncio lib to clean up the whole pyAnalogWay (which was neat but cumbersome)
 * TODO: Use logging instead of this clusterfk
 * TODO: Sysexit not working
-* URGENT: Network interruption not working
+* **URGENT**: Network interruption not working
 * TODO: Empty triggers should give a little more info
 * TODO: Clean up the whole IO handler
-* TODO: Quickframe & Frames
+* TODO: ~~Quickframe~~ & Frames
 * TODO: Fix Fakeserver reconnect/linux
-* TODO: Pycharm linux dependecies
-* TODO: Sync Freeze with toggle
+* TODO: Pycharm linux dependencies
