@@ -20,7 +20,7 @@ def printl(label=""):
 
 eprint=printl("[mPH:ERROR]")
 dprint,ddprint,iprint,wprint=nopeF,nopeF,nopeF,nopeF
-# bindings.dprint, bindings.ddprint, bindings.iprint= nopeF, nopeF, nopeF
+bindings.dprint, bindings.ddprint, bindings.iprint= nopeF, nopeF, nopeF
 
 if _VERBOSE>=1:
     wprint=printl("[mPH:WARNING]")
@@ -52,21 +52,22 @@ class pulseLink(object):
     def message(self):
         pass
 
-def _onload(self):
+def _onload(self,config):
     "Send a reset colors"
     import time
     try:
-        HOSTS=[["127.0.0.1",3000]] # Test server
+        #HOSTS=[["127.0.0.1",3000]] # Test server
+        patch = config["interface"]
+        HOSTS = [[patch["module1_ip"], int(patch["module1_port"])]]
         # HOSTS=[["192.168.0.140",10500]] # Test server
-        
         # The socket remote controller
         controllerPulse1= bindings.analogController(*HOSTS[0])
 
         # Adding the midi interface to the controller
         handler.addInterfaceOut(self.interfaceOut(1))
-        time.sleep(0.2)
+        time.sleep(1)
         # The pulse module, bound to 3 lines
-        modulePulse1=handler.addModule(midiPageHandler.pulseRackController, [0, 1, 2, 4])
+        modulePulse1=handler.addModule(midiPageHandler.pulseRackController, [0, 1, 3, 4])
 
         # The IO interface between the pulse and the controller, one IO is necessary per auxilliary application
         IOInterface= midiPageHandler.IOInterfacePulse(handler, modulePulse1, controllerPulse1)
@@ -107,6 +108,7 @@ class MidiInterface(BasicMidiInterface):
 
     def __init__(self,configfile):
         super(MidiInterface,self).__init__(configfile)
-        _onload(self)
+
+        _onload(self,self.config)
         self.functionlist["pagepress"]=pagepress
         self.functionlist["quitpress"]=quitpress

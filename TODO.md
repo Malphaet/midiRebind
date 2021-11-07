@@ -1,5 +1,4 @@
-# Big list of big stuff to do
-* Move all projects/subprojects to src/
+# Main Tasks
 * Make all tests
 * Clean up the code and the TODO
 * Make the code more readable

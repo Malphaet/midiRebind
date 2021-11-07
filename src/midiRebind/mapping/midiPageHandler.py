@@ -276,7 +276,7 @@ class midiPageHandler(object):
         if (self._changedbasevalues[linecol[0]][linecol[1]]&statusId):
             self._changedbasevalues[linecol[0]][linecol[1]]-=statusId
 
-    def hasStatus(self,statusId):
+    def hasStatus(self,linecol,statusId):
         "Check if a status is present"
         if (self._changedbasevalues[linecol[0]][linecol[1]]&statusId):
             return True
@@ -385,8 +385,8 @@ class pulseRackController(object):
         self.realByName={i:j for i,j in zip(self.lineNames,ranges.values())}
         # dprint(self.returnByName,self.realByName)
         _ALL_MESSAGE_TYPES=["STATUS","LAYERINP","TAKE","TAKEALL","LOADMM","QUICKF"]
-        self._command_cols=["Black1","Black2","Freeze1","Freeze2",None,None,None,"TakeAll"]
-        self._command_colors=[("Inactive","Selected"),("Inactive","Selected"),"Active","Active",None,None,None,"Live"]
+        self._command_cols=["Black1","Black2","Freeze1","Freeze2",None,None,"Quickframe","TakeAll"]
+        self._command_colors=[("Inactive","Selected"),("Inactive","Selected"),"Active","Active",None,None,"Active","Live"]
         self.commandPos={name:(self.returnByName["Commands"],i) for name,i in zip(self._command_cols,range(8))}
         self.returnInterface=returnInterface
         self.output=None
@@ -448,15 +448,17 @@ class pulseRackController(object):
             self.receiveFreeze(match)
         elif command=="STATUS":
             self.receiveStatus(match)
+        elif command=="QUICKF":
+            self.receiveQuickframe(match)
 
     @doublepress
     def takeAllProtect(self):
-        "TakaAll, double-press protected"
+        """TakaAll, double-press protected"""
         self.returnInterface._IOInterface.toExternalProgram("TAKEALL")
         #print("Taking...")
 
     def specialPress(self,line,col):
-        "Press on the special line"
+        """Press on the special line"""
         # print("SPECIAL ON PROGRESS",line,self._command_cols[col])
         command=self._command_cols[col]
         if command=="Black1":
@@ -471,7 +473,9 @@ class pulseRackController(object):
         elif command=="Freeze1":
             self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",0,1) # Action is none, so it toggles, maybe
         elif command=="Freeze2":
-            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",1,1) 
+            self.returnInterface._IOInterface.toExternalProgram("FREEZELAYER",0,2)
+        elif command=="Quickframe":
+            self.returnInterface._IOInterface.toExternalProgram("QUICKFRAME",0)
 
     def sendLayerInp(self,screen,liveprev,layer,idinput):
         """Send a message to the pulse: Layer input change
@@ -524,10 +528,12 @@ class pulseRackController(object):
         "Receive a freeze input"
         layer,screen,action=match.group("postargs").split(",")
         # print(self.commandPos["Freeze"+str(int(layer)+1)])
-        if action=="1": # Freezing ?
-            self.returnInterface.addStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Live") # Probably, maybe layer+1
+        if layer != '0':
+            return None # Only for layer 0
+        if action == "1": # Freezing ?
+            self.returnInterface.addStatus(self.commandPos["Freeze"+str(int(screen))],"Live") # Probably, maybe layer+1
         else:
-            self.returnInterface.removeStatus(self.commandPos["Freeze"+str(int(layer)+1)],"Live")
+            self.returnInterface.removeStatus(self.commandPos["Freeze"+str(int(screen))],"Live")
         self.returnInterface.applyChanges()
         self.returnInterface.applyColors()
 
@@ -544,6 +550,16 @@ class pulseRackController(object):
         self.returnInterface.applyChanges()
         self.returnInterface.applyColors()
 
+    def receiveQuickframe(self,match):
+        "A quickframe (all) is received, update the controller"
+        src,status=match.group("postargs").split(",")
+        dprint("A quickframe is received by the handler Layer:{},status:{}".format(src,status))
+        if status=='1':
+            self.returnInterface.addStatus(self.commandPos["Quickframe"],"Live")
+        else:
+            self.returnInterface.removeStatus(self.commandPos["Quickframe"],"Live")
+        self.returnInterface.applyChanges()
+        self.returnInterface.applyColors()
 
     def sendMemoryChange(self,memory,liveprev):
         """Adjust the color and info of a memory press (take or preview)
@@ -630,7 +646,8 @@ class AkaiAPCMini(midiPageHandler):
             self.lightnote(note,val)
 
     def lightcolor(self,col,row,color):
-        self.light(col,row,val=_COLORS[color])
+        print("Lighting {col} {row} with {color}".format(col=col,row=row,color=color))
+        self.light(col,row,val=self.colors[color])
 
     def light(self,col,row,val=1):
         self.lightnote(self.findit(col,row),val)
