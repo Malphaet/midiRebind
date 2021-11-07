@@ -5,6 +5,17 @@ on:
   - pull_request
 
 jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        uses: actions/setup-python@v2
+      - run: |
+          echo "Installing dependencies"
+          sudo apt-get update
+          sudo apt install -y python3-rtmidi libasound-dev libjack-dev libjack-jackd2-dev
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
